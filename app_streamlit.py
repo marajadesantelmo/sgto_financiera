@@ -73,17 +73,16 @@ with col2:
         default=operadores
     )
 
-    # Filtrar datos según la selección y días con datos
+    # Filtrar primero por operadores seleccionados
     df_filtrado = df_operaciones[
         df_operaciones['Operador'].isin(operadores_seleccionados)
     ]
-
-    # Agrupar por fecha para identificar días con datos
-    dias_con_datos = df_filtrado.groupby('Fecha')['Cantidad Operaciones'].sum().reset_index()
-    dias_con_datos = dias_con_datos[dias_con_datos['Cantidad Operaciones'] > 0]['Fecha']
     
-    # Filtrar solo los días con datos
-    df_filtrado = df_filtrado[df_filtrado['Fecha'].isin(dias_con_datos)]
+    # Filtrar solo los registros que tienen cantidad de operaciones mayor a 0
+    df_filtrado = df_filtrado[df_filtrado['Cantidad Operaciones'] > 0]
+    
+    # Ordenar por fecha
+    df_filtrado = df_filtrado.sort_values('Fecha')
 
     # Crear gráfico de barras interactivo con Plotly
     fig_barras = px.bar(
