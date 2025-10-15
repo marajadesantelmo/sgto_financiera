@@ -1,0 +1,1 @@
+"C:\Users\flastra\AppData\Local\anaconda3\python.exe" "\\dc01\Usuarios\PowerBI\flastra\Documents\pablo_financiera\update_datos.py"
