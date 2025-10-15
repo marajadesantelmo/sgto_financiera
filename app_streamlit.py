@@ -84,10 +84,13 @@ with col2:
     # Ordenar por fecha
     df_filtrado = df_filtrado.sort_values('Fecha')
 
+    # Convertir las fechas a formato string para tratarlas como categorías
+    df_filtrado['Fecha_str'] = df_filtrado['Fecha'].dt.strftime('%d/%m/%Y')
+
     # Crear gráfico de barras interactivo con Plotly
     fig_barras = px.bar(
         df_filtrado,
-        x='Fecha',
+        x='Fecha_str',  # Usar la versión string de la fecha
         y='Cantidad Operaciones',
         color='Operador',
         title='Operaciones por Operador y Día',
@@ -101,7 +104,8 @@ with col2:
         xaxis_tickangle=-45,
         showlegend=True,
         height=600,
-        xaxis_tickformat='%d/%m/%Y'  # Formato de fecha en español
+        xaxis={'type': 'category'},  # Forzar eje x como categoría
+        xaxis_tickmode='array'  # Asegurar que se muestren todas las fechas
     )
 
     # Mostrar el gráfico
