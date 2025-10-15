@@ -7,6 +7,7 @@ st.set_page_config(
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import plotly.express as px
 import os
 from supabase_connection import fetch_table_data
 
@@ -27,20 +28,7 @@ df_operaciones['Fecha'] = pd.to_datetime(df_operaciones['Fecha'], format='%d/%m/
 # 1. Heatmap de la matriz de operadores
 st.header("Matriz de Operadores por Día")
 
-# Preparar datos para el heatmap
-columnas_operadores = ['BS AS', 'CA', 'EP', 'FB', 'MT', 'NP', 'TDLA']
-df_heatmap = df_matriz.pivot_table(
-    index='Fecha', 
-    values=columnas_operadores
-)
-
-# Crear el heatmap
-fig_heatmap, ax = plt.subplots(figsize=(12, 6))
-sns.heatmap(df_heatmap, cmap='YlOrRd', annot=True, fmt='.0f', cbar_kws={'label': 'Cantidad de Operaciones'})
-plt.title('Heatmap de Operaciones por Operador')
-plt.xticks(rotation=45)
-plt.tight_layout()
-st.pyplot(fig_heatmap)
+st.dataframe(df_matriz)
 
 # 2. Gráfico de barras con filtro de operadores
 st.header("Operaciones por Operador")
@@ -58,10 +46,24 @@ operadores_seleccionados = st.multiselect(
 # Filtrar datos según la selección
 df_filtrado = df_operaciones[df_operaciones['Operador'].isin(operadores_seleccionados)]
 
-# Crear gráfico de barras
-fig_barras = plt.figure(figsize=(12, 6))
-sns.barplot(data=df_filtrado, x='Fecha', y='Cantidad Operaciones', hue='Operador')
-plt.title('Operaciones por Operador y Día')
-plt.xticks(rotation=45)
-plt.tight_layout()
-st.pyplot(fig_barras)
+# Crear gráfico de barras interactivo con Plotly
+fig_barras = px.bar(
+    df_filtrado,
+    x='Fecha',
+    y='Cantidad Operaciones',
+    color='Operador',
+    title='Operaciones por Operador y Día',
+    barmode='group'
+)
+
+# Customizar el diseño
+fig_barras.update_layout(
+    xaxis_title='Fecha',
+    yaxis_title='Cantidad de Operaciones',
+    xaxis_tickangle=-45,
+    showlegend=True,
+    height=600
+)
+
+# Mostrar el gráfico
+st.plotly_chart(fig_barras, use_container_width=True)
