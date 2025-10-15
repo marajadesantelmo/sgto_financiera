@@ -1,7 +1,6 @@
 -- Create the operador_operaciones_diarios table
 CREATE TABLE sgto_matriz_operadores_dias (
     id SERIAL PRIMARY KEY,
-    "Operador" TEXT,
     "Fecha" TEXT,
     "BS AS" NUMERIC,
     "CA" NUMERIC,
