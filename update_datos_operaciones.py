@@ -1,8 +1,9 @@
 import gspread
-from gspread_dataframe import set_with_dataframe
 import pandas as pd
 import os
-
+from tokens import url_supabase, key_supabase
+from supabase import create_client, Client
+supabase_client = create_client(url_supabase, key_supabase)
 gc = gspread.service_account(filename='\\\\dc01\\Usuarios\\PowerBI\\flastra\\Documents\\sgto_financiera\\credenciales_gsheets.json')
 
 sheet_url = 'https://docs.google.com/spreadsheets/d/1luAwlud_R8-GDIYZRiQuuSIOnF5RuPATZdqdIDm-0j8'
@@ -105,18 +106,27 @@ operaciones['TC'] = pd.to_numeric(operaciones['TC'], errors='coerce')
 operaciones['Total pesos'] = pd.to_numeric(operaciones['Total pesos'], errors='coerce')
 operaciones['Caja Acum'] = pd.to_numeric(operaciones['Caja Acum'], errors='coerce')
 
-operador_operaciones_diarios_tidy = operaciones.groupby(['Fecha', 'Operador']).size().reset_index(name='Cantidad_Operaciones')
+operaciones_operador_por_dia = operaciones.groupby(['Fecha', 'Operador']).size().reset_index(name='Cantidad Operaciones')
 
-operador_operaciones_pivot = operador_operaciones_diarios_tidy.pivot_table(
+operador_operaciones_pivot = operaciones_operador_por_dia.pivot_table(
     index='Fecha', 
     columns='Operador', 
-    values='Cantidad_Operaciones', 
+    values='Cantidad Operaciones', 
     fill_value=0
 )
 
 operador_operaciones_pivot['Total'] = operador_operaciones_pivot.sum(axis=1)
-operador_operaciones_diarios = operador_operaciones_pivot.reset_index()
-operador_operaciones_diarios['Fecha'] = pd.to_datetime(operador_operaciones_diarios['Fecha'], format='%d/%m/%Y')
-operador_operaciones_diarios = operador_operaciones_diarios.sort_values('Fecha')
-operador_operaciones_diarios['Fecha'] = operador_operaciones_diarios['Fecha'].dt.strftime('%d/%m/%Y')
+sgto_matriz_operadores_dias = operador_operaciones_pivot.reset_index()
+sgto_matriz_operadores_dias['Fecha'] = pd.to_datetime(sgto_matriz_operadores_dias['Fecha'], format='%d/%m/%Y')
+sgto_matriz_operadores_dias = sgto_matriz_operadores_dias.sort_values('Fecha')
+sgto_matriz_operadores_dias['Fecha'] = sgto_matriz_operadores_dias['Fecha'].dt.strftime('%d/%m/%Y')
 
+def insert_table_data(table_name, data):
+    for record in data:
+        try:
+            supabase_client.from_(table_name).insert(record).execute()
+        except Exception as e:
+            print(f"Error inserting record into {table_name}: {e}")
+
+insert_table_data('sgto_matriz_operadores_dias', sgto_matriz_operadores_dias.to_dict(orient='records'))
+insert_table_data('sgto_operaciones_operador_por_dia', operaciones_operador_por_dia.to_dict(orient='records'))
