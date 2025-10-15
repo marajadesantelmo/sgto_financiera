@@ -3,7 +3,7 @@ from gspread_dataframe import set_with_dataframe
 import pandas as pd
 import os
 
-gc = gspread.service_account(filename='\\\\dc01\\Usuarios\\PowerBI\\flastra\\Documents\\pablo_financiera\\credenciales_gsheets.json')
+gc = gspread.service_account(filename='\\\\dc01\\Usuarios\\PowerBI\\flastra\\Documents\\sgto_financiera\\credenciales_gsheets.json')
 
 sheet_url = 'https://docs.google.com/spreadsheets/d/1luAwlud_R8-GDIYZRiQuuSIOnF5RuPATZdqdIDm-0j8'
 sh = gc.open_by_url(sheet_url)
@@ -104,4 +104,19 @@ operaciones['Monto'] = pd.to_numeric(operaciones['Monto'], errors='coerce')
 operaciones['TC'] = pd.to_numeric(operaciones['TC'], errors='coerce')
 operaciones['Total pesos'] = pd.to_numeric(operaciones['Total pesos'], errors='coerce')
 operaciones['Caja Acum'] = pd.to_numeric(operaciones['Caja Acum'], errors='coerce')
+
+operador_operaciones_diarios_tidy = operaciones.groupby(['Fecha', 'Operador']).size().reset_index(name='Cantidad_Operaciones')
+
+operador_operaciones_pivot = operador_operaciones_diarios_tidy.pivot_table(
+    index='Fecha', 
+    columns='Operador', 
+    values='Cantidad_Operaciones', 
+    fill_value=0
+)
+
+operador_operaciones_pivot['Total'] = operador_operaciones_pivot.sum(axis=1)
+operador_operaciones_diarios = operador_operaciones_pivot.reset_index()
+operador_operaciones_diarios['Fecha'] = pd.to_datetime(operador_operaciones_diarios['Fecha'], format='%d/%m/%Y')
+operador_operaciones_diarios = operador_operaciones_diarios.sort_values('Fecha')
+operador_operaciones_diarios['Fecha'] = operador_operaciones_diarios['Fecha'].dt.strftime('%d/%m/%Y')
 
