@@ -8,62 +8,102 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import plotly.express as px
+import numpy as np
 import os
 from supabase_connection import fetch_table_data
-
-
-url_supabase = os.getenv("url_supabase")
-key_supabase= os.getenv("key_supabase")
 
 # Título principal
 st.title("📊 Análisis de Operaciones Financieras")
 
-df_matriz  = fetch_table_data("sgto_matriz_operadores_dias")
+df_matriz = fetch_table_data("sgto_matriz_operadores_dias")
 df_operaciones = fetch_table_data("sgto_operaciones_operador_por_dia")
 
 # Convertir fechas al formato correcto
 df_matriz['Fecha'] = pd.to_datetime(df_matriz['Fecha'], format='%d/%m/%Y')
 df_operaciones['Fecha'] = pd.to_datetime(df_operaciones['Fecha'], format='%d/%m/%Y')
 
-# 1. Heatmap de la matriz de operadores
-st.header("Matriz de Operadores por Día")
+# Crear dos columnas para el layout
+col1, col2 = st.columns(2)
 
-st.dataframe(df_matriz)
+with col1:
+    st.header("Matriz de Operadores por Día")
+    
+    # Preparar datos para la matriz
+    matriz_display = df_matriz.copy()
+    # Convertir fecha a formato dd/mm/yyyy
+    matriz_display['Fecha'] = matriz_display['Fecha'].dt.strftime('%d/%m/%Y')
+    # Eliminar columnas id y mantener solo las columnas necesarias
+    columnas_operadores = ['Fecha', 'BS AS', 'CA', 'EP', 'FB', 'MT', 'NP', 'TDLA']
+    matriz_display = matriz_display[columnas_operadores]
+    # Establecer Fecha como índice
+    matriz_display.set_index('Fecha', inplace=True)
+    
+    # Crear un estilo para el heatmap
+    def highlight_values(val):
+        if pd.isna(val):
+            return ''
+        normalized_val = (val - matriz_display.select_dtypes(include=[np.number]).min().min()) / \
+                        (matriz_display.select_dtypes(include=[np.number]).max().max() - 
+                         matriz_display.select_dtypes(include=[np.number]).min().min())
+        color = f'background-color: rgba(255, 99, 71, {normalized_val})'
+        return color
+    
+    # Aplicar estilo y mostrar la matriz
+    st.dataframe(
+        matriz_display.style
+        .apply(lambda x: [highlight_values(v) for v in x])
+        .format("{:.0f}")
+        .set_table_styles([
+            {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black')]},
+            {'selector': 'td', 'props': [('text-align', 'center')]}
+        ]),
+        height=400
+    )
 
-# 2. Gráfico de barras con filtro de operadores
-st.header("Operaciones por Operador")
+with col2:
+    st.header("Operaciones por Operador")
 
-# Obtener lista única de operadores
-operadores = sorted(df_operaciones['Operador'].unique())
+    # Obtener lista única de operadores
+    operadores = sorted(df_operaciones['Operador'].unique())
 
-# Crear filtro multiselect para operadores
-operadores_seleccionados = st.multiselect(
-    'Seleccionar Operadores:',
-    operadores,
-    default=operadores
-)
+    # Crear filtro multiselect para operadores
+    operadores_seleccionados = st.multiselect(
+        'Seleccionar Operadores:',
+        operadores,
+        default=operadores
+    )
 
-# Filtrar datos según la selección
-df_filtrado = df_operaciones[df_operaciones['Operador'].isin(operadores_seleccionados)]
+    # Filtrar datos según la selección y días con datos
+    df_filtrado = df_operaciones[
+        df_operaciones['Operador'].isin(operadores_seleccionados)
+    ]
 
-# Crear gráfico de barras interactivo con Plotly
-fig_barras = px.bar(
-    df_filtrado,
-    x='Fecha',
-    y='Cantidad Operaciones',
-    color='Operador',
-    title='Operaciones por Operador y Día',
-    barmode='group'
-)
+    # Agrupar por fecha para identificar días con datos
+    dias_con_datos = df_filtrado.groupby('Fecha')['Cantidad Operaciones'].sum().reset_index()
+    dias_con_datos = dias_con_datos[dias_con_datos['Cantidad Operaciones'] > 0]['Fecha']
+    
+    # Filtrar solo los días con datos
+    df_filtrado = df_filtrado[df_filtrado['Fecha'].isin(dias_con_datos)]
 
-# Customizar el diseño
-fig_barras.update_layout(
-    xaxis_title='Fecha',
-    yaxis_title='Cantidad de Operaciones',
-    xaxis_tickangle=-45,
-    showlegend=True,
-    height=600
-)
+    # Crear gráfico de barras interactivo con Plotly
+    fig_barras = px.bar(
+        df_filtrado,
+        x='Fecha',
+        y='Cantidad Operaciones',
+        color='Operador',
+        title='Operaciones por Operador y Día',
+        barmode='group'
+    )
 
-# Mostrar el gráfico
-st.plotly_chart(fig_barras, use_container_width=True)
+    # Customizar el diseño
+    fig_barras.update_layout(
+        xaxis_title='Fecha',
+        yaxis_title='Cantidad de Operaciones',
+        xaxis_tickangle=-45,
+        showlegend=True,
+        height=600,
+        xaxis_tickformat='%d/%m/%Y'  # Formato de fecha en español
+    )
+
+    # Mostrar el gráfico
+    st.plotly_chart(fig_barras, use_container_width=True)
