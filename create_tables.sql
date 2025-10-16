@@ -19,3 +19,12 @@ CREATE TABLE sgto_operaciones_operador_por_dia (
     "Operador" TEXT,
     "Cantidad Operaciones" NUMERIC
 );
+
+-- Create the sgto_montos_usd_tdc table
+CREATE TABLE sgto_montos_usd_tdc (
+    id SERIAL PRIMARY KEY,
+    "Monto USD ayer" NUMERIC,
+    "TdC ayer" NUMERIC,
+    "Monto USD hoy" NUMERIC,
+    "TdC hoy" NUMERIC
+);

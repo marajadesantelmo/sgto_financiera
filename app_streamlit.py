@@ -17,6 +17,7 @@ st.title("📊 Análisis de Operaciones Financieras")
 
 df_matriz = fetch_table_data("sgto_matriz_operadores_dias")
 df_operaciones = fetch_table_data("sgto_operaciones_operador_por_dia")
+metricas = fetch_table_data("sgto_montos_usd_tdc")
 
 # Convertir fechas al formato correcto
 df_matriz['Fecha'] = pd.to_datetime(df_matriz['Fecha'], format='%d/%m/%Y')
@@ -26,6 +27,27 @@ df_operaciones['Fecha'] = pd.to_datetime(df_operaciones['Fecha'], format='%d/%m/
 col1, col2 = st.columns(2)
 
 with col1:
+    # Mostrar métricas principales
+    st.header("Métricas Principales")
+    
+    # Formatear los números en formato español con 2 decimales
+    monto_usd_ayer = f"${metricas['Monto USD ayer'].iloc[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    tdc_ayer = f"Bs. {metricas['TdC ayer'].iloc[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    monto_usd_hoy = f"${metricas['Monto USD hoy'].iloc[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    tdc_hoy = f"Bs. {metricas['TdC hoy'].iloc[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    # Crear dos columnas para las métricas
+    met_col1, met_col2 = st.columns(2)
+    
+    with met_col1:
+        st.metric(label="Monto USD Ayer", value=monto_usd_ayer)
+        st.metric(label="Tasa de Cambio Ayer", value=tdc_ayer)
+    
+    with met_col2:
+        st.metric(label="Monto USD Hoy", value=monto_usd_hoy)
+        st.metric(label="Tasa de Cambio Hoy", value=tdc_hoy)
+
+
     st.header("Matriz de Operadores por Día")
     
     # Preparar datos para la matriz

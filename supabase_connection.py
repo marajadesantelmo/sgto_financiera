@@ -26,3 +26,9 @@ def fetch_table_data(table_name, retries=3, delay=5):
             else:
                 raise Exception(f"Failed to fetch data from {table_name} after {retries} attempts")
 
+def insert_table_data(table_name, data):
+    for record in data:
+        try:
+            supabase_client.from_(table_name).insert(record).execute()
+        except Exception as e:
+            print(f"Error inserting record into {table_name}: {e}")

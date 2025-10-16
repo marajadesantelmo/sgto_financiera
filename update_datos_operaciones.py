@@ -4,7 +4,12 @@ import os
 from tokens import url_supabase, key_supabase
 from supabase import create_client, Client
 supabase_client = create_client(url_supabase, key_supabase)
-gc = gspread.service_account(filename='\\\\dc01\\Usuarios\\PowerBI\\flastra\\Documents\\sgto_financiera\\credenciales_gsheets.json')
+
+
+if os.path.exists('\\\\dc01\\Usuarios\\PowerBI\\flastra\\Documents\\sgto_financiera\\credenciales_gsheets.json'):
+    gc = gspread.service_account('\\\\dc01\\Usuarios\\PowerBI\\flastra\\Documents\\sgto_financiera\\credenciales_gsheets.json')
+elif os.path.exists('credenciales_gsheets.json'):
+    gc = gspread.service_account(filename='credenciales_gsheets.json')
 
 sheet_url = 'https://docs.google.com/spreadsheets/d/1luAwlud_R8-GDIYZRiQuuSIOnF5RuPATZdqdIDm-0j8'
 sh = gc.open_by_url(sheet_url)
@@ -121,6 +126,38 @@ sgto_matriz_operadores_dias['Fecha'] = pd.to_datetime(sgto_matriz_operadores_dia
 sgto_matriz_operadores_dias = sgto_matriz_operadores_dias.sort_values('Fecha')
 sgto_matriz_operadores_dias['Fecha'] = sgto_matriz_operadores_dias['Fecha'].dt.strftime('%d/%m/%Y')
 
+operaciones_usd = operaciones[(operaciones['Tipo'] == 'USD') & (operaciones['TC'].notna())].copy()   # Qué hacer con los casos donde TC es NaN??
+operaciones_usd.loc[:, 'Monto'] = operaciones_usd['Monto'].abs()
+operaciones_usd['MontoxTC'] = operaciones_usd['Monto'] * operaciones_usd['TC']
+ayer = pd.to_datetime("today") - pd.Timedelta(days=1)
+ayer = ayer.strftime('%d/%m/%Y')
+
+if ayer in operaciones_usd['Fecha'].values:
+    operaciones_usd_ayer = operaciones_usd[operaciones_usd['Fecha'] == ayer]
+    monto_usd_ayer = operaciones_usd_ayer['Monto'].sum()
+    montoxTC_usd_ayer = operaciones_usd_ayer['MontoxTC'].sum()
+    tdc_ayer = montoxTC_usd_ayer / monto_usd_ayer
+else: 
+    monto_usd_ayer = 0
+    tdc_ayer = 0
+
+hoy = pd.to_datetime("today").strftime('%d/%m/%Y')
+if hoy in sgto_matriz_operadores_dias['Fecha'].values:
+    operaciones_usd_hoy = operaciones_usd[operaciones_usd['Fecha'] == hoy]
+    monto_usd_hoy = operaciones_usd_hoy['Monto'].sum()
+    montoxTC_usd_hoy = operaciones_usd_hoy['MontoxTC'].sum()
+    tdc_hoy = montoxTC_usd_hoy / monto_usd_hoy
+else: 
+    monto_usd_hoy = 0
+    tdc_hoy = 0    
+
+metricas_df = pd.DataFrame([{
+    'Monto USD ayer': monto_usd_ayer,
+    'TdC ayer': tdc_ayer,
+    'Monto USD hoy': monto_usd_hoy,
+    'TdC hoy': tdc_hoy
+}])
+
 def insert_table_data(table_name, data):
     for record in data:
         try:
@@ -128,5 +165,6 @@ def insert_table_data(table_name, data):
         except Exception as e:
             print(f"Error inserting record into {table_name}: {e}")
 
+insert_table_data('sgto_montos_usd_tdc', metricas_df.to_dict(orient='records'))
 insert_table_data('sgto_matriz_operadores_dias', sgto_matriz_operadores_dias.to_dict(orient='records'))
 insert_table_data('sgto_operaciones_operador_por_dia', operaciones_operador_por_dia.to_dict(orient='records'))
