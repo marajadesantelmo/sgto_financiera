@@ -61,7 +61,7 @@ df['Ganancias'] = df['Ganancias'].str.replace('.', '').str.replace(',', '.').ast
 
 sheet= gc.open('Datos Financiera')
 seguimiento_worksheet = sheet.worksheet('Seguimiento')
-set_with_dataframe(seguimiento_worksheet, df)
+
 
 # Get the last value of Total Caja column
 last_total_caja = df['Total Caja'].iloc[-1].astype(int).astype(str)
@@ -102,3 +102,4 @@ for col in percentage_columns:
 
 tablita_worksheet = sheet.worksheet('Tablita')
 set_with_dataframe(tablita_worksheet, df_tabla)
+set_with_dataframe(seguimiento_worksheet, df)

@@ -11,34 +11,24 @@ if os.path.exists('\\\\dc01\\Usuarios\\PowerBI\\flastra\\Documents\\sgto_financi
     gc = gspread.service_account('\\\\dc01\\Usuarios\\PowerBI\\flastra\\Documents\\sgto_financiera\\credenciales_gsheets.json')
 elif os.path.exists('credenciales_gsheets.json'):
     gc = gspread.service_account(filename='credenciales_gsheets.json')
-
+#Operaciones
 sheet_url = 'https://docs.google.com/spreadsheets/d/1luAwlud_R8-GDIYZRiQuuSIOnF5RuPATZdqdIDm-0j8'
 sh = gc.open_by_url(sheet_url)
 worksheet = sh.worksheet('Operaciones Octubre 2025')
-
-
 columns1 = ['Fecha', 'Operador', 'Cliente']
-
 columns2 = ['USD - Monto', 'USD - TC', 'USD - Total pesos', 'USD - Caja Acum', 'Libre1', 'PESOS - Monto', 'PESOS - Caja Acum', 'Libre2',
            'TFS SALTA - Monto', 'TFS Salta - Caja Acum']
-
-# Get data from the specified range A4:M3961
 data_range1 = worksheet.get('A4:C3961')
 data_range2 = worksheet.get('F4:P3961')
-
-
 print("Datos obtenidos de Google Sheets, procesando...")
 data1 = pd.DataFrame(data_range1, columns=columns1)
 data2 = pd.DataFrame(data_range2, columns=columns2)
-
 data2 = data2.drop(columns=['Libre1', 'Libre2'])
 operaciones = pd.concat([data1, data2], axis=1)
 operaciones = operaciones.dropna(subset=['Fecha'])
 operaciones = operaciones[operaciones['Operador'] != '']
 operaciones = operaciones[operaciones['Operador'].notna()]
-# Create a new dataframe to store the transformed data
 transformed = []
-
 for _, row in operaciones.iterrows():
     # Common fields for all rows
     base_data = {
@@ -76,14 +66,9 @@ for _, row in operaciones.iterrows():
         tfs_data['Total pesos'] = None
         tfs_data['Caja Acum'] = row['TFS Salta - Caja Acum']
         transformed.append(tfs_data)
-
-# Create final transformed dataframe
 operaciones_transformed = pd.DataFrame(transformed)
-
-# Replace the original operaciones dataframe
 operaciones = operaciones_transformed
 operaciones.fillna("0", inplace=True)
-
 
 def convert_to_numeric(value):
     if isinstance(value, str):
@@ -103,26 +88,21 @@ def convert_to_numeric(value):
             return value
     return value
 
-# Apply numeric conversion to appropriate columns
 numeric_columns = ['Monto', 'TC', 'Total pesos', 'Caja Acum']
 for col in numeric_columns:
     operaciones[col] = operaciones[col].apply(convert_to_numeric)
 
-# Convert data types explicitly
 operaciones['Monto'] = pd.to_numeric(operaciones['Monto'], errors='coerce')
 operaciones['TC'] = pd.to_numeric(operaciones['TC'], errors='coerce')
 operaciones['Total pesos'] = pd.to_numeric(operaciones['Total pesos'], errors='coerce')
 operaciones['Caja Acum'] = pd.to_numeric(operaciones['Caja Acum'], errors='coerce')
-
 operaciones_operador_por_dia = operaciones.groupby(['Fecha', 'Operador']).size().reset_index(name='Cantidad Operaciones')
-
 operador_operaciones_pivot = operaciones_operador_por_dia.pivot_table(
     index='Fecha', 
     columns='Operador', 
     values='Cantidad Operaciones', 
     fill_value=0
 )
-
 operador_operaciones_pivot['Total'] = operador_operaciones_pivot.sum(axis=1)
 sgto_matriz_operadores_dias = operador_operaciones_pivot.reset_index()
 sgto_matriz_operadores_dias['Fecha'] = pd.to_datetime(sgto_matriz_operadores_dias['Fecha'], format='%d/%m/%Y')
@@ -162,6 +142,105 @@ metricas_df = pd.DataFrame([{
 }])
 
 
+#### Control Caja ####
+sheet_url = 'https://docs.google.com/spreadsheets/d/1quiYMjvkoE6N9pVxEnPithfOfz-QdY8jEZkR3qC0xzg'
+sh = gc.open_by_url(sheet_url)
+worksheet = sh.worksheet('Control caja')
+fechas_caja = worksheet.get('AP2:BV2')
+total_caja = worksheet.get('AP49:BV49')
+ganancias = worksheet.get('AP50:BV50')
+
+
+data_fechas = pd.DataFrame(fechas_caja).transpose()
+data_total_caja = pd.DataFrame(total_caja).transpose()
+data_ganancias = pd.DataFrame(ganancias).transpose()
+data_fechas.columns = ['Fecha']
+data_total_caja.columns = ['Total Caja']
+data_ganancias.columns = ['Ganancias']
+df = pd.concat([data_fechas, data_total_caja, data_ganancias], axis=1)
+
+# Convert 'Fecha' column to standard format dd/mm/yyyy
+df['Fecha'] = df['Fecha'].apply(lambda x: x.strip() if isinstance(x, str) else x)  # Remove whitespace if any
+
+# Process dates
+def standardize_date(date_str):
+    if not isinstance(date_str, str):
+        return date_str
+    
+    # Split by '/' if present
+    parts = date_str.split('/')
+    
+    if len(parts) == 2:
+        day, month = parts
+    else:
+        # Assuming format like '01/09'
+        day = date_str[:2] if len(date_str) >= 2 else date_str
+        month = date_str[3:5] if len(date_str) >= 5 else ""
+        
+    # Ensure day has two digits
+    if len(day.strip()) == 1:
+        day = f"0{day.strip()}"
+    else:
+        day = day.strip()
+        
+    # Ensure month has two digits
+    if len(month.strip()) == 1:
+        month = f"0{month.strip()}"
+    else:
+        month = month.strip()
+        
+    return f"2025-{month}-{day}"
+
+df['Fecha'] = df['Fecha'].apply(standardize_date)
+
+# Convert 'Total Caja' and 'Ganancias' to numeric, removing dots used as thousands separators
+df['Total Caja'] = df['Total Caja'].str.replace('.', '').str.replace(',', '.').astype(int)
+df['Ganancias'] = df['Ganancias'].str.replace('.', '').str.replace(',', '.').astype(int)
+
+sheet= gc.open('Datos Financiera')
+seguimiento_worksheet = sheet.worksheet('Seguimiento')
+
+
+# Get the last value of Total Caja column
+last_total_caja = df['Total Caja'].iloc[-1].astype(int).astype(str)
+variacion = (df['Total Caja'].iloc[-1] - df['Total Caja'].iloc[0]) / df['Total Caja'].iloc[0]
+variacion = variacion.round(4).astype(str)
+
+metricas_worksheet = sheet.worksheet('Metricas')
+metricas_worksheet.update( [[last_total_caja]], 'A2')
+metricas_worksheet.update([[variacion]], 'B2')
+### Tablita 
+
+tabla = worksheet.get('AJ62:AR66')
+# Create DataFrame from the tabla data
+df_tabla = pd.DataFrame(tabla)
+
+df_tabla.columns = df_tabla.iloc[0]
+df_tabla = df_tabla.drop(0)
+df_tabla = df_tabla.reset_index(drop=True)
+df_tabla.columns = ['CONCEPTO', '', 'HOY', 'ACUM MES', 'PROM x DIA', 'VAR MA', 'PROY MES', 'VAR PROY', 'Obj'] #Cambio nombre a columna duplicada
+df_tabla = df_tabla.drop(columns=[''])  # Drop the empty column
+df_tabla['HOY'] = df_tabla['HOY'].str.replace('.', '')
+df_tabla['ACUM MES'] = df_tabla['ACUM MES'].str.replace('.', '')
+df_tabla['PROM x DIA'] = df_tabla['PROM x DIA'].str.replace('.', '')
+df_tabla['VAR MA'] = df_tabla['VAR MA'].str.replace('%', '')
+df_tabla['PROY MES'] = df_tabla['PROY MES'].str.replace('.', '')
+df_tabla['VAR PROY'] = df_tabla['VAR PROY'].str.replace('%', '')
+df_tabla['Obj'] = df_tabla['Obj'].str.replace('.', '')
+df_tabla['CONCEPTO'] = df_tabla['CONCEPTO'].str.strip() 
+# Convert numeric columns to integers
+numeric_columns = ['HOY', 'ACUM MES', 'PROM x DIA', 'PROY MES', 'Obj']
+for col in numeric_columns:
+    df_tabla[col] = pd.to_numeric(df_tabla[col], errors='coerce').fillna(0).astype(int)
+
+# Convert percentage columns to float and divide by 100
+percentage_columns = ['VAR MA', 'VAR PROY']
+for col in percentage_columns:
+    df_tabla[col] = pd.to_numeric(df_tabla[col], errors='coerce').fillna(0) / 100
+
+
+
+#### Carga de datos en supabase ####
 print("Datos procesados, actualizando base de datos...")
 
 def insert_table_data(table_name, data):
@@ -181,11 +260,14 @@ def update_log():
 supabase_client.table('sgto_montos_usd_tdc').delete().neq('id', 0).execute()
 supabase_client.table('sgto_matriz_operadores_dias').delete().neq('id', 0).execute()
 supabase_client.table('sgto_operaciones_operador_por_dia').delete().neq('id', 0).execute()
+supabase_client.table('sgto_tabla_datos').delete().neq('id', 0).execute()
+supabase_client.table('sgto_control_caja').delete().neq('id', 0).execute()
 
 insert_table_data('sgto_montos_usd_tdc', metricas_df.to_dict(orient='records'))
 insert_table_data('sgto_matriz_operadores_dias', sgto_matriz_operadores_dias.to_dict(orient='records'))
 insert_table_data('sgto_operaciones_operador_por_dia', operaciones_operador_por_dia.to_dict(orient='records'))
-
+insert_table_data('sgto_tabla_datos', df_tabla.to_dict(orient='records'))
+insert_table_data('sgto_control_caja', df.to_dict(orient='records'))
 update_log()
 
 print("Actualización completada.")
