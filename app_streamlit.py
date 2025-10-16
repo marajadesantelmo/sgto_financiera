@@ -209,7 +209,7 @@ with col2b:
     st.plotly_chart(fig_ganancias, use_container_width=True)
 
 # Formatear tabla de seguimiento de caja
-st.subheader("Seguimiento de Caja")
+st.subheader("Resumen y proyecciones")
 tabla_display = tabla_sgto_caja.copy()
 tabla_display = tabla_display.drop('id', axis=1)
 
