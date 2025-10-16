@@ -12,18 +12,32 @@ import numpy as np
 import os
 from supabase_connection import fetch_table_data
 
-# Título principal
-st.title("📊 Análisis de Operaciones Financieras")
+
 
 df_matriz = fetch_table_data("sgto_matriz_operadores_dias")
 df_operaciones = fetch_table_data("sgto_operaciones_operador_por_dia")
 metricas = fetch_table_data("sgto_montos_usd_tdc")
-
+def fetch_last_update():
+    update_log = fetch_table_data("update_log")
+    if not update_log.empty:
+        last_update = update_log[update_log['table_name'] == 'Arribos y existente']['last_update'].max()
+        try:
+            datetime_obj = pd.to_datetime(last_update)
+            if pd.isna(datetime_obj):
+                return "No disponible"
+            return datetime_obj.strftime("%d/%m/%Y %H:%M")
+        except (ValueError, TypeError):
+            return "No disponible"
+    return "No disponible"
+last_update = fetch_last_update()
 # Convertir fechas al formato correcto
 df_matriz['Fecha'] = pd.to_datetime(df_matriz['Fecha'], format='%d/%m/%Y')
 df_operaciones['Fecha'] = pd.to_datetime(df_operaciones['Fecha'], format='%d/%m/%Y')
 
-# Crear dos columnas para el layout
+
+# App
+st.title("📊 Análisis de Operaciones Financieras")
+st.info(f'Última actualización: {last_update}')
 col1, col2 = st.columns(2)
 
 with col1:
@@ -81,7 +95,6 @@ with col1:
         ]),
         height=400
     )
-
 with col2:
     st.header("Operaciones por Operador")
 

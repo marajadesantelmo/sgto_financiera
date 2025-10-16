@@ -4,8 +4,9 @@ import os
 from tokens import url_supabase, key_supabase
 from supabase import create_client, Client
 supabase_client = create_client(url_supabase, key_supabase)
+from datetime import datetime
 
-
+print("Iniciando actualización de datos de operaciones...")
 if os.path.exists('\\\\dc01\\Usuarios\\PowerBI\\flastra\\Documents\\sgto_financiera\\credenciales_gsheets.json'):
     gc = gspread.service_account('\\\\dc01\\Usuarios\\PowerBI\\flastra\\Documents\\sgto_financiera\\credenciales_gsheets.json')
 elif os.path.exists('credenciales_gsheets.json'):
@@ -25,6 +26,8 @@ columns2 = ['USD - Monto', 'USD - TC', 'USD - Total pesos', 'USD - Caja Acum', '
 data_range1 = worksheet.get('A4:C3961')
 data_range2 = worksheet.get('F4:P3961')
 
+
+print("Datos obtenidos de Google Sheets, procesando...")
 data1 = pd.DataFrame(data_range1, columns=columns1)
 data2 = pd.DataFrame(data_range2, columns=columns2)
 
@@ -158,6 +161,9 @@ metricas_df = pd.DataFrame([{
     'TdC hoy': tdc_hoy
 }])
 
+
+print("Datos procesados, actualizando base de datos...")
+
 def insert_table_data(table_name, data):
     for record in data:
         try:
@@ -165,6 +171,21 @@ def insert_table_data(table_name, data):
         except Exception as e:
             print(f"Error inserting record into {table_name}: {e}")
 
+def update_log():
+    log_entry = {
+        "Ultimo Update": datetime.now().isoformat()
+    }
+    supabase_client.from_("sgto_log_entry").insert(log_entry).execute()
+
+
+supabase_client.table('sgto_montos_usd_tdc').delete().neq('id', 0).execute()
+supabase_client.table('sgto_matriz_operadores_dias').delete().neq('id', 0).execute()
+supabase_client.table('sgto_operaciones_operador_por_dia').delete().neq('id', 0).execute()
+
 insert_table_data('sgto_montos_usd_tdc', metricas_df.to_dict(orient='records'))
 insert_table_data('sgto_matriz_operadores_dias', sgto_matriz_operadores_dias.to_dict(orient='records'))
 insert_table_data('sgto_operaciones_operador_por_dia', operaciones_operador_por_dia.to_dict(orient='records'))
+
+update_log()
+
+print("Actualización completada.")

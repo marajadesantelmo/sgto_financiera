@@ -28,3 +28,8 @@ CREATE TABLE sgto_montos_usd_tdc (
     "Monto USD hoy" NUMERIC,
     "TdC hoy" NUMERIC
 );
+-- Create the log_entry table
+CREATE TABLE log_entry (
+    id SERIAL PRIMARY KEY,
+    "Ultimo Update" TIMESTAMP
+);
