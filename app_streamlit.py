@@ -17,7 +17,7 @@ from supabase_connection import fetch_table_data
 df_matriz = fetch_table_data("sgto_matriz_operadores_dias")
 df_operaciones = fetch_table_data("sgto_operaciones_operador_por_dia")
 metricas = fetch_table_data("sgto_montos_usd_tdc")
-df = fetch_table_data("sgto_control_caja")
+df = fetch_table_data("sgto_historico_caja")
 df_tabla = fetch_table_data("sgto_tabla_datos")
 def fetch_last_update():
     update_log = fetch_table_data("sgto_log_entry")
