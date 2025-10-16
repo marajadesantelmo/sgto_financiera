@@ -231,7 +231,8 @@ st.dataframe(
     .set_table_styles([
         {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black')]},
         {'selector': 'td', 'props': [('text-align', 'right')]}
-    ]),
+    ])
+    .hide(axis='index'),
     height=200
 )
 
