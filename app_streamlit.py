@@ -17,6 +17,8 @@ from supabase_connection import fetch_table_data
 df_matriz = fetch_table_data("sgto_matriz_operadores_dias")
 df_operaciones = fetch_table_data("sgto_operaciones_operador_por_dia")
 metricas = fetch_table_data("sgto_montos_usd_tdc")
+df = fetch_table_data("sgto_control_caja")
+df_tabla = fetch_table_data("sgto_tabla_datos")
 def fetch_last_update():
     update_log = fetch_table_data("sgto_log_entry")
     if not update_log.empty:
@@ -38,9 +40,9 @@ df_operaciones['Fecha'] = pd.to_datetime(df_operaciones['Fecha'], format='%d/%m/
 # App
 st.title("📊 Análisis de Operaciones Financieras")
 st.info(f'Última actualización: {last_update}')
-col1, col2 = st.columns(2)
+col1a, col2a = st.columns(2)
 
-with col1:
+with col1a:
     # Mostrar métricas principales
     st.header("Métricas Principales")
     
@@ -95,7 +97,7 @@ with col1:
         ]),
         height=400
     )
-with col2:
+with col2a:
     st.header("Operaciones por Operador")
 
     # Obtener lista única de operadores
@@ -145,3 +147,14 @@ with col2:
 
     # Mostrar el gráfico
     st.plotly_chart(fig_barras, use_container_width=True)
+
+st.markdown("""---""")
+st.subheader("Seguimiento caja y ganancias")
+
+# Cargar datos de la tabla de control de caja
+col1b, col12b = st.columns(2)
+with col1b:
+    st.dataframe(df)
+# Mostrar datos de la tabla
+with col12b:
+    st.dataframe(df_tabla)
