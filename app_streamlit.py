@@ -148,21 +148,18 @@ with col2a:
     # Mostrar el gráfico
     st.plotly_chart(fig_barras, use_container_width=True)
 
-# Sección de análisis de caja
-st.header("Análisis de Caja")
+st.markdown("""---""")
+# Sección de seguimiento de caja y ganancias
+st.header("Seguimiento caja y ganancias")
 
 # Obtener datos
 historico_caja = fetch_table_data("sgto_historico_caja")
 tabla_sgto_caja = fetch_table_data("sgto_tabla_datos")
-
-# Convertir fechas
 historico_caja['Fecha'] = pd.to_datetime(historico_caja['Fecha'])
 
-# Función para formatear moneda
 def format_currency(val):
     return f"${val:,.0f}"
 
-# Función para formatear porcentaje con colores
 def color_percentage(val):
     try:
         val_num = float(val)
@@ -171,44 +168,45 @@ def color_percentage(val):
     except:
         return ''
 
-# Formatear tabla histórico de caja
 historico_display = historico_caja.copy()
 historico_display = historico_display.drop('id', axis=1)
 historico_display['Fecha'] = historico_display['Fecha'].dt.strftime('%d/%m/%Y')
 
+col1b, col2b = st.columns([1, 2])
+with col1b: 
 # Crear estilo para histórico de caja
-st.subheader("Histórico de Caja")
-st.dataframe(
-    historico_display.style
-    .format({
-        'Total Caja': format_currency,
-        'Ganancias': format_currency
-    })
-    .set_table_styles([
-        {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black')]},
-        {'selector': 'td', 'props': [('text-align', 'right')]}
-    ]),
-    height=400
-)
+    st.subheader("Histórico de Caja")
+    st.dataframe(
+        historico_display.style
+        .format({
+            'Total Caja': format_currency,
+            'Ganancias': format_currency
+        })
+        .set_table_styles([
+            {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black')]},
+            {'selector': 'td', 'props': [('text-align', 'right')]}
+        ]),
+        height=400
+    )
+with col2b:
+    # Gráfico de línea para Ganancias
+    fig_ganancias = px.line(
+        historico_caja,
+        x='Fecha',
+        y='Ganancias',
+        title='Evolución de Ganancias',
+        markers=True
+    )
 
-# Gráfico de línea para Ganancias
-fig_ganancias = px.line(
-    historico_caja,
-    x='Fecha',
-    y='Ganancias',
-    title='Evolución de Ganancias',
-    markers=True
-)
+    fig_ganancias.update_layout(
+        xaxis_title='Fecha',
+        yaxis_title='Ganancias ($)',
+        height=400,
+        xaxis_tickformat='%d/%m/%Y',
+        yaxis_tickformat='$,.0f'
+    )
 
-fig_ganancias.update_layout(
-    xaxis_title='Fecha',
-    yaxis_title='Ganancias ($)',
-    height=400,
-    xaxis_tickformat='%d/%m/%Y',
-    yaxis_tickformat='$,.0f'
-)
-
-st.plotly_chart(fig_ganancias, use_container_width=True)
+    st.plotly_chart(fig_ganancias, use_container_width=True)
 
 # Formatear tabla de seguimiento de caja
 st.subheader("Seguimiento de Caja")
@@ -235,13 +233,4 @@ st.dataframe(
     height=200
 )
 
-st.markdown("""---""")
-st.subheader("Seguimiento caja y ganancias")
 
-# Cargar datos de la tabla de control de caja
-col1b, col12b = st.columns(2)
-with col1b:
-    st.dataframe(historico_caja)
-# Mostrar datos de la tabla
-with col12b:
-    st.dataframe(tabla_sgto_caja)
