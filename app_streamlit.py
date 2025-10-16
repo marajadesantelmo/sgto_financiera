@@ -32,21 +32,21 @@ with col1:
     
     # Formatear los números en formato español con 2 decimales
     monto_usd_ayer = f"${metricas['Monto USD ayer'].iloc[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    tdc_ayer = f"Bs. {metricas['TdC ayer'].iloc[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    tdc_ayer = f"$ {metricas['TdC ayer'].iloc[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     monto_usd_hoy = f"${metricas['Monto USD hoy'].iloc[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    tdc_hoy = f"Bs. {metricas['TdC hoy'].iloc[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    tdc_hoy = f"$ {metricas['TdC hoy'].iloc[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-    # Crear dos columnas para las métricas
-    met_col1, met_col2 = st.columns(2)
-    
+    # Crear cuatro columnas para las métricas
+    met_col1, met_col2, met_col3, met_col4 = st.columns(4)
+
     with met_col1:
         st.metric(label="Monto USD Ayer", value=monto_usd_ayer)
+    with met_col2:        
         st.metric(label="Tasa de Cambio Ayer", value=tdc_ayer)
-    
-    with met_col2:
+    with met_col3:
         st.metric(label="Monto USD Hoy", value=monto_usd_hoy)
+    with met_col4:
         st.metric(label="Tasa de Cambio Hoy", value=tdc_hoy)
-
 
     st.header("Matriz de Operadores por Día")
     
