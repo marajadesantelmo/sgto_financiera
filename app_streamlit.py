@@ -17,6 +17,8 @@ from supabase_connection import fetch_table_data
 df_matriz = fetch_table_data("sgto_matriz_operadores_dias")
 df_operaciones = fetch_table_data("sgto_operaciones_operador_por_dia")
 metricas = fetch_table_data("sgto_montos_usd_tdc")
+historico_caja = fetch_table_data("sgto_historico_caja")
+tabla_sgto_caja = fetch_table_data("sgto_tabla_datos")
 def fetch_last_update():
     update_log = fetch_table_data("sgto_log_entry")
     if not update_log.empty:
@@ -38,9 +40,9 @@ df_operaciones['Fecha'] = pd.to_datetime(df_operaciones['Fecha'], format='%d/%m/
 # App
 st.title("📊 Análisis de Operaciones Financieras")
 st.info(f'Última actualización: {last_update}')
-col1, col2 = st.columns(2)
+col1a, col2a = st.columns(2)
 
-with col1:
+with col1a:
     # Mostrar métricas principales
     st.header("Métricas Principales")
     
@@ -95,7 +97,7 @@ with col1:
         ]),
         height=400
     )
-with col2:
+with col2a:
     st.header("Operaciones por Operador")
 
     # Obtener lista única de operadores
@@ -145,3 +147,90 @@ with col2:
 
     # Mostrar el gráfico
     st.plotly_chart(fig_barras, use_container_width=True)
+
+st.markdown("""---""")
+# Sección de seguimiento de caja y ganancias
+st.header("Seguimiento caja y ganancias")
+
+# Obtener datos
+historico_caja = fetch_table_data("sgto_historico_caja")
+tabla_sgto_caja = fetch_table_data("sgto_tabla_datos")
+historico_caja['Fecha'] = pd.to_datetime(historico_caja['Fecha'])
+
+def format_currency(val):
+    return f"${val:,.0f}"
+
+def color_percentage(val):
+    try:
+        val_num = float(val)
+        color = 'red' if val_num < 0 else 'green'
+        return f'color: {color}'
+    except:
+        return ''
+
+historico_display = historico_caja.copy()
+historico_display = historico_display.drop('id', axis=1)
+historico_display['Fecha'] = historico_display['Fecha'].dt.strftime('%d/%m/%Y')
+
+col1b, col2b = st.columns([1, 2])
+with col1b: 
+# Crear estilo para histórico de caja
+    st.subheader("Histórico de Caja")
+    st.dataframe(
+        historico_display.style
+        .format({
+            'Total Caja': format_currency,
+            'Ganancias': format_currency
+        })
+        .set_table_styles([
+            {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black')]},
+            {'selector': 'td', 'props': [('text-align', 'right')]}
+        ]),
+        height=400
+    )
+with col2b:
+    # Gráfico de línea para Ganancias
+    fig_ganancias = px.line(
+        historico_caja,
+        x='Fecha',
+        y='Ganancias',
+        title='Evolución de Ganancias',
+        markers=True
+    )
+
+    fig_ganancias.update_layout(
+        xaxis_title='Fecha',
+        yaxis_title='Ganancias ($)',
+        height=400,
+        xaxis_tickformat='%d/%m/%Y',
+        yaxis_tickformat='$,.0f'
+    )
+
+    st.plotly_chart(fig_ganancias, use_container_width=True)
+
+# Formatear tabla de seguimiento de caja
+st.subheader("Resumen y proyecciones")
+tabla_display = tabla_sgto_caja.copy()
+tabla_display = tabla_display.drop('id', axis=1)
+
+# Crear estilo para tabla de seguimiento
+st.dataframe(
+    tabla_display.style
+    .format({
+        'HOY': format_currency,
+        'ACUM MES': format_currency,
+        'PROM x DIA': format_currency,
+        'VAR MA': '{:.1%}',
+        'PROY MES': format_currency,
+        'VAR PROY': '{:.1%}',
+        'Obj': format_currency
+    })
+    .applymap(color_percentage, subset=['VAR MA', 'VAR PROY'])
+    .set_table_styles([
+        {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black')]},
+        {'selector': 'td', 'props': [('text-align', 'right')]}
+    ]),
+    height=200
+)
+
+

@@ -33,3 +33,24 @@ CREATE TABLE log_entry (
     id SERIAL PRIMARY KEY,
     "Ultimo Update" TIMESTAMP
 );
+
+-- Create the tabla_datos table
+CREATE TABLE sgto_tabla_datos (
+    id SERIAL PRIMARY KEY,
+    "CONCEPTO" TEXT,
+    "HOY" NUMERIC,
+    "ACUM MES" NUMERIC,
+    "PROM x DIA" NUMERIC,
+    "VAR MA" NUMERIC,
+    "PROY MES" NUMERIC, 
+    "VAR PROY" NUMERIC,
+    "Obj" NUMERIC
+);
+
+-- Create the historico_caja table
+CREATE TABLE sgto_historico_caja (
+    id SERIAL PRIMARY KEY,
+    "Fecha" DATE,
+    "Total Caja" NUMERIC,
+    "Ganancias" NUMERIC
+);
