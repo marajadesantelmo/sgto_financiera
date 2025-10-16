@@ -31,10 +31,10 @@ with col1:
     st.header("Métricas Principales")
     
     # Formatear los números en formato español con 2 decimales
-    monto_usd_ayer = f"${metricas['Monto USD ayer'].iloc[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    tdc_ayer = f"$ {metricas['TdC ayer'].iloc[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    monto_usd_hoy = f"${metricas['Monto USD hoy'].iloc[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    tdc_hoy = f"$ {metricas['TdC hoy'].iloc[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    monto_usd_ayer = f"${metricas['Monto USD ayer'].iloc[0]:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    tdc_ayer = f"$ {metricas['TdC ayer'].iloc[0]:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    monto_usd_hoy = f"${metricas['Monto USD hoy'].iloc[0]:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    tdc_hoy = f"$ {metricas['TdC hoy'].iloc[0]:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
     # Crear cuatro columnas para las métricas
     met_col1, met_col2, met_col3, met_col4 = st.columns(4)
