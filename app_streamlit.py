@@ -18,7 +18,7 @@ df_matriz = fetch_table_data("sgto_matriz_operadores_dias")
 df_operaciones = fetch_table_data("sgto_operaciones_operador_por_dia")
 metricas = fetch_table_data("sgto_montos_usd_tdc")
 def fetch_last_update():
-    update_log = fetch_table_data("sgto_update_log")
+    update_log = fetch_table_data("sgto_log_entry")
     if not update_log.empty:
         last_update = update_log['Ultimo Update'].max()
         try:
