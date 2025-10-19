@@ -1,16 +1,63 @@
+import streamlit as st
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import plotly.express as px
+import numpy as np
+import os
+from supabase_connection import (
+    fetch_table_data, 
+    login_user, 
+    logout_user, 
+    get_user_session
+)
 
+# Configuración de la página
+st.set_page_config(
+    page_title="Análisis de Operaciones Financieras",
+    page_icon="📊",
+    layout="wide"
+)
 
+# Inicialización de estado de sesión
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = False
+if 'user' not in st.session_state:
+    st.session_state['user'] = None
+ 
 
-def show_page_operaciones():
-    import streamlit as st
-    import pandas as pd
-    import numpy as np
-    import plotly.express as px
-    from supabase_connection import fetch_table_data
+def handle_logout():
+    st.session_state['authenticated'] = False
+    st.session_state['user'] = None
+    logout_user()
 
-    # Fetch and display last update info
+# Página de login
+if not st.session_state['authenticated']:
+    st.title("🔐 Acceso al Sistema")
+    
+    with st.form("login_form"):
+        email = st.text_input("Email")
+        password = st.text_input("Contraseña", type="password")
+        submitted = st.form_submit_button("Iniciar Sesión")
 
+    if submitted:
+        try:
+            user = login_user(email, password)
+            if user:
+                st.session_state['authenticated'] = True
+                st.session_state['user'] = user
+                st.success('Login exitoso!')
+                st.rerun()
+            else:
+                st.error('Credenciales incorrectas')
+        except Exception as e:
+            st.error(f'Error al iniciar sesión: {str(e)}')
 
+else:
+    st.sidebar.button("Cerrar Sesión", on_click=handle_logout)
+    st.sidebar.info(f"Usuario: {st.session_state['user'].email}")
+
+    # Get last update time
     def fetch_last_update():
         update_log = fetch_table_data("sgto_log_entry")
         if update_log is not None and not update_log.empty:
@@ -23,7 +70,7 @@ def show_page_operaciones():
             except (ValueError, TypeError):
                 return "No disponible"
         return "No disponible"
-
+    
     last_update = fetch_last_update()
     st.sidebar.info(f"Última actualización: {last_update}")
 
@@ -31,13 +78,15 @@ def show_page_operaciones():
     df_matriz = fetch_table_data("sgto_matriz_operadores_dias")
     df_operaciones = fetch_table_data("sgto_operaciones_operador_por_dia")
     metricas = fetch_table_data("sgto_montos_usd_tdc")
+    historico_caja = fetch_table_data("sgto_historico_caja")
+    tabla_sgto_caja = fetch_table_data("sgto_tabla_datos")
     tabla_tdc = fetch_table_data("sgto_tabla_tdc")
 
     # Initialize display DataFrames
     matriz_display = pd.DataFrame()
     historico_display = pd.DataFrame()
     tabla_display = pd.DataFrame()
-
+    
     # Process each DataFrame safely
     try:
         # Process df_matriz
@@ -49,10 +98,19 @@ def show_page_operaciones():
         if df_operaciones is not None and not df_operaciones.empty:
             df_operaciones['Fecha'] = pd.to_datetime(df_operaciones['Fecha'], format='%d/%m/%Y')
         
+        # Process historico_caja
+        if historico_caja is not None and not historico_caja.empty:
+            historico_caja['Fecha'] = pd.to_datetime(historico_caja['Fecha'])
+            historico_display = historico_caja.copy()
+
         # Process tabla_tdc
         if tabla_tdc is not None and not tabla_tdc.empty:
             tabla_tdc['Fecha'] = pd.to_datetime(tabla_tdc['Fecha'])
             tabla_tdc = tabla_tdc.sort_values('Fecha')
+            
+        # Process tabla_sgto_caja
+        if tabla_sgto_caja is not None and not tabla_sgto_caja.empty:
+            tabla_display = tabla_sgto_caja.copy()
             
         # Check if any essential data is missing
         missing_data = []
@@ -123,7 +181,7 @@ def show_page_operaciones():
                     if pd.isna(val):
                         return ''
                     normalized_val = (val - matriz_display.select_dtypes(include=[np.number]).min().min()) / \
-                                    (matriz_display.select_dtypes(include=[np.number]).max().max() - 
+                                   (matriz_display.select_dtypes(include=[np.number]).max().max() - 
                                     matriz_display.select_dtypes(include=[np.number]).min().min())
                     color = f'background-color: rgba(255, 99, 71, {normalized_val})'
                     return color
@@ -226,3 +284,103 @@ def show_page_operaciones():
         st.plotly_chart(fig_barras, use_container_width=True)
 
     st.markdown("""---""")
+    # Sección de seguimiento de caja y ganancias
+    st.header("Seguimiento caja y ganancias")
+
+    def format_currency(val):
+        return f"${val:,.0f}"
+
+    def color_percentage(val):
+        try:
+            val_num = float(val)
+            color = 'red' if val_num < 0 else 'green'
+            return f'color: {color}'
+        except:
+            return ''
+
+    col1b, col2b = st.columns([1, 2])
+    
+    try:
+        if historico_caja is not None and not historico_caja.empty:
+            # Procesar datos del histórico
+            historico_display = historico_caja.copy()
+            historico_display = historico_display.drop('id', axis=1)
+            historico_display['Fecha'] = pd.to_datetime(historico_display['Fecha']).dt.strftime('%d/%m/%Y')
+
+            with col1b:
+                st.subheader("Histórico de Caja")
+                st.dataframe(
+                    historico_display.style
+                    .format({
+                        'Total Caja': format_currency,
+                        'Ganancias': format_currency
+                    })
+                    .set_table_styles([
+                        {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black')]},
+                        {'selector': 'td', 'props': [('text-align', 'right')]}
+                    ])
+                    .hide(axis='index'),
+                    height=400
+                )
+        else:
+            with col1b:
+                st.warning("No hay datos históricos de caja disponibles")
+    except Exception as e:
+        with col1b:
+            st.error(f"Error al procesar el histórico de caja: {str(e)}")
+    with col2b:
+        # Gráfico de línea para Ganancias
+        fig_ganancias = px.line(
+            historico_caja,
+            x='Fecha',
+            y='Ganancias',
+            title='Evolución de Ganancias',
+            markers=True
+        )
+
+        fig_ganancias.update_layout(
+            xaxis_title='Fecha',
+            yaxis_title='Ganancias ($)',
+            height=400,
+            xaxis_tickformat='%d/%m/%Y',
+            yaxis_tickformat='$,.0f'
+        )
+
+        st.plotly_chart(fig_ganancias, use_container_width=True)
+
+    # Formatear tabla de seguimiento de caja
+    st.subheader("Resumen y proyecciones")
+    try:
+        if tabla_sgto_caja is not None and not tabla_sgto_caja.empty:
+            tabla_display = tabla_sgto_caja.copy()
+            tabla_display = tabla_display.drop('id', axis=1)
+
+            # Crear estilo para tabla de seguimiento
+            styled_df = tabla_display.style.format({
+                'HOY': format_currency,
+                'ACUM MES': format_currency,
+                'PROM x DIA': format_currency,
+                'VAR MA': '{:.1%}',
+                'PROY MES': format_currency,
+                'VAR PROY': '{:.1%}',
+                'Obj': format_currency
+            })
+
+            # Apply color to percentage columns
+            for col in ['VAR MA', 'VAR PROY']:
+                if col in tabla_display.columns:
+                    styled_df = styled_df.map(color_percentage, subset=[col])
+
+            st.dataframe(
+                styled_df.set_table_styles([
+                    {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black')]},
+                    {'selector': 'td', 'props': [('text-align', 'right')]}
+                ]).hide(axis='index'),
+                height=200
+            )
+        else:
+            st.warning("No hay datos de seguimiento de caja disponibles")
+    except Exception as e:
+        st.error(f"Error al procesar la tabla de seguimiento: {str(e)}")
+
+

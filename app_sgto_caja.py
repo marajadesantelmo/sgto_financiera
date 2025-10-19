@@ -3,13 +3,10 @@ def show_page_caja():
     import pandas as pd
     import plotly.express as px
     from supabase_connection import fetch_table_data
-    st.set_page_config(page_title="Seguimiento de Caja y Ganancias",
-                          page_icon="💰"
-                          , layout="wide")
     # Fetch data
     historico_caja = fetch_table_data("sgto_historico_caja")
     tabla_sgto_caja = fetch_table_data("sgto_tabla_datos")
-    
+
 
     st.header("Seguimiento caja y ganancias")
 
