@@ -119,7 +119,7 @@ def show_page_operaciones():
                     normalized_val = (val - matriz_display.select_dtypes(include=[np.number]).min().min()) / \
                                     (matriz_display.select_dtypes(include=[np.number]).max().max() - 
                                     matriz_display.select_dtypes(include=[np.number]).min().min())
-                    color = f'background-color: rgba(255, 99, 71, {normalized_val})'
+                    color = f'background-color: rgba(0, 20, 255, {normalized_val})'
                     return color
                 
                 # Aplicar estilo y mostrar la matriz

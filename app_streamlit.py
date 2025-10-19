@@ -147,10 +147,9 @@ else:
             unsafe_allow_html=True,
         )
 
-    st.sidebar.button("Cerrar Sesión", on_click=handle_logout, use_container_width=True)
-
     nav_container = st.sidebar.container()
     with nav_container:
+        st.markdown('<div class="nav-wrapper"><h3>🧭 Paneles disponibles</h3>', unsafe_allow_html=True)
         option_labels = [f"{item['icon']}  {title}" for title, item in NAV_ITEMS.items()]
         label_to_title = dict(zip(option_labels, NAV_ITEMS.keys()))
         default_label = f"{NAV_ITEMS[st.session_state['selected_page']]['icon']}  {st.session_state['selected_page']}"
@@ -167,8 +166,17 @@ else:
 
     selected_page = label_to_title[selected_label]
     st.session_state['selected_page'] = selected_page
+    st.sidebar.markdown(
+        f"<div class='nav-caption'>{NAV_ITEMS[selected_page]['icon']} {selected_page}</div>",
+        unsafe_allow_html=True,
+    )
 
     if selected_page == "Operaciones USD":
         show_page_operaciones()
     else:
         show_page_caja()
+
+    st.markdown("<hr style='margin-top:3rem;'>", unsafe_allow_html=True)
+    _, logout_col, _ = st.columns([1, 2, 1])
+    with logout_col:
+        st.button("Cerrar Sesión", on_click=handle_logout, use_container_width=True)
