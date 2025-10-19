@@ -56,17 +56,9 @@ if not st.session_state['authenticated']:
         st.form_submit_button("Iniciar Sesión", on_click=login)
 
 else:
-    # Mostrar botón de logout
     st.sidebar.button("Cerrar Sesión", on_click=logout)
-    
-    # Mostrar email del usuario
     st.sidebar.info(f"Usuario: {st.session_state['user'].email}")
     
-    # Contenido principal del dashboard
-    st.title("📊 Análisis de Operaciones Financieras")
-
-
-
     df_matriz = fetch_table_data("sgto_matriz_operadores_dias")
     df_operaciones = fetch_table_data("sgto_operaciones_operador_por_dia")
     metricas = fetch_table_data("sgto_montos_usd_tdc")
