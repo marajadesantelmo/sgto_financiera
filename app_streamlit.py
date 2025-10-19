@@ -24,11 +24,7 @@ if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
 if 'user' not in st.session_state:
     st.session_state['user'] = None
-if 'login_submitted' not in st.session_state:
-    st.session_state['login_submitted'] = False
-
-def handle_login():
-    st.session_state['login_submitted'] = True
+ 
 
 def handle_logout():
     st.session_state['authenticated'] = False
@@ -40,24 +36,22 @@ if not st.session_state['authenticated']:
     st.title("🔐 Acceso al Sistema")
     
     with st.form("login_form"):
-        st.text_input("Email", key="email")
-        st.text_input("Contraseña", type="password", key="password")
-        submitted = st.form_submit_button("Iniciar Sesión", on_click=handle_login)
-        
-        if st.session_state.login_submitted:
-            try:
-                user = login_user(st.session_state.email, st.session_state.password)
-                if user:
-                    st.session_state['authenticated'] = True
-                    st.session_state['user'] = user
-                    st.session_state['login_submitted'] = False
-                    st.success('Login exitoso!')
-                else:
-                    st.error('Credenciales incorrectas')
-                    st.session_state['login_submitted'] = False
-            except Exception as e:
-                st.error(f'Error al iniciar sesión: {str(e)}')
-                st.session_state['login_submitted'] = False
+        email = st.text_input("Email")
+        password = st.text_input("Contraseña", type="password")
+        submitted = st.form_submit_button("Iniciar Sesión")
+
+    if submitted:
+        try:
+            user = login_user(email, password)
+            if user:
+                st.session_state['authenticated'] = True
+                st.session_state['user'] = user
+                st.success('Login exitoso!')
+                st.rerun()
+            else:
+                st.error('Credenciales incorrectas')
+        except Exception as e:
+            st.error(f'Error al iniciar sesión: {str(e)}')
 
 else:
     st.sidebar.button("Cerrar Sesión", on_click=handle_logout)
