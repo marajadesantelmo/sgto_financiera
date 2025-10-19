@@ -25,7 +25,6 @@ def show_page_operaciones():
         return "No disponible"
 
     last_update = fetch_last_update()
-    st.sidebar.info(f"Última actualización: {last_update}")
 
     # Fetch all necessary data
     df_matriz = fetch_table_data("sgto_matriz_operadores_dias")
@@ -66,6 +65,7 @@ def show_page_operaciones():
 
     # App title
     st.title("📊 Análisis de Operaciones Financieras")
+    st.info(f"Última actualización: {last_update}")
 
     # Layout setup
     col1a, col2a = st.columns(2)

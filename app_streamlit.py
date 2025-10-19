@@ -48,11 +48,9 @@ else:
     NAV_ITEMS = {
         "Operaciones USD": {
             "icon": "💱",
-            "description": "Visor de operaciones en USD, volúmenes y tasas.",
         },
         "Seguimiento Caja": {
             "icon": "💰",
-            "description": "Balance de caja diaria, ganancias y proyecciones.",
         },
     }
 
@@ -153,8 +151,6 @@ else:
 
     nav_container = st.sidebar.container()
     with nav_container:
-        st.markdown('<div class="nav-wrapper"><h3>🧭 Paneles disponibles</h3>', unsafe_allow_html=True)
-
         option_labels = [f"{item['icon']}  {title}" for title, item in NAV_ITEMS.items()]
         label_to_title = dict(zip(option_labels, NAV_ITEMS.keys()))
         default_label = f"{NAV_ITEMS[st.session_state['selected_page']]['icon']}  {st.session_state['selected_page']}"
