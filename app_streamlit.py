@@ -171,42 +171,51 @@ else:
         st.header("Matriz de Operadores por Día")
         
         # Preparar datos para la matriz
-        matriz_display = df_matriz.copy()
-        # Convertir fecha a formato dd/mm/yyyy
-        matriz_display['Fecha'] = matriz_display['Fecha'].dt.strftime('%d/%m/%Y')
-        # Eliminar columnas id y mantener solo las columnas necesarias
-        columnas_operadores = ['Fecha', 'BS AS', 'CA', 'EP', 'FB', 'MT', 'NP', 'TDLA']
-        matriz_display = matriz_display[columnas_operadores]
-        # Establecer Fecha como índice
-        matriz_display.set_index('Fecha', inplace=True)
-        
-        # Crear un estilo para el heatmap
-        def highlight_values(val):
-            if pd.isna(val):
-                return ''
-            normalized_val = (val - matriz_display.select_dtypes(include=[np.number]).min().min()) / \
-                            (matriz_display.select_dtypes(include=[np.number]).max().max() - 
-                            matriz_display.select_dtypes(include=[np.number]).min().min())
-            color = f'background-color: rgba(255, 99, 71, {normalized_val})'
-            return color
-        
-        # Aplicar estilo y mostrar la matriz
-        st.dataframe(
-            matriz_display.style
-            .apply(lambda x: [highlight_values(v) for v in x])
-            .format("{:.0f}")
-            .set_table_styles([
-                {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black')]},
-                {'selector': 'td', 'props': [('text-align', 'center')]}
-            ])
-            .hide(axis='index'),
-            height=400
-        )
+        if df_matriz is not None and not df_matriz.empty:
+            try:
+                matriz_display = df_matriz.copy()
+                # Convertir fecha a formato dd/mm/yyyy
+                matriz_display['Fecha'] = matriz_display['Fecha'].dt.strftime('%d/%m/%Y')
+                # Eliminar columnas id y mantener solo las columnas necesarias
+                columnas_operadores = ['Fecha', 'BS AS', 'CA', 'EP', 'FB', 'MT', 'NP', 'TDLA']
+                matriz_display = matriz_display[columnas_operadores]
+                # Establecer Fecha como índice
+                matriz_display.set_index('Fecha', inplace=True)
+                
+                # Crear un estilo para el heatmap
+                def highlight_values(val):
+                    if pd.isna(val):
+                        return ''
+                    normalized_val = (val - matriz_display.select_dtypes(include=[np.number]).min().min()) / \
+                                   (matriz_display.select_dtypes(include=[np.number]).max().max() - 
+                                    matriz_display.select_dtypes(include=[np.number]).min().min())
+                    color = f'background-color: rgba(255, 99, 71, {normalized_val})'
+                    return color
+                
+                # Aplicar estilo y mostrar la matriz
+                st.dataframe(
+                    matriz_display.style
+                    .apply(lambda x: [highlight_values(v) for v in x])
+                    .format("{:.0f}")
+                    .set_table_styles([
+                        {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black')]},
+                        {'selector': 'td', 'props': [('text-align', 'center')]}
+                    ])
+                    .hide(axis='index'),
+                    height=400
+                )
+            except Exception as e:
+                st.error(f"Error al procesar la matriz de operadores: {str(e)}")
 
         # Grafico de lineas con tipo de cambio promedio max y min
-        tabla_tdc['Fecha'] = pd.to_datetime(tabla_tdc['Fecha'])
-        # Sort by date
-        tabla_tdc = tabla_tdc.sort_values('Fecha')
+        if tabla_tdc is not None and not tabla_tdc.empty:
+            try:
+                tabla_tdc['Fecha'] = pd.to_datetime(tabla_tdc['Fecha'])
+                # Sort by date
+                tabla_tdc = tabla_tdc.sort_values('Fecha')
+            except Exception as e:
+                st.error(f"Error al procesar los datos de tipo de cambio: {str(e)}")
+                return
 
         # Create figure with secondary y axis
         fig_tdc = px.line(tabla_tdc, x='Fecha', y=['TC Prom', 'TC_min', 'TC_max'],
@@ -225,29 +234,37 @@ else:
     with col2a:
         st.header("Operaciones por Operador")
 
-        # Obtener lista única de operadores
-        operadores = sorted(df_operaciones['Operador'].unique())
+        try:
+            if df_operaciones is not None and not df_operaciones.empty:
+                # Obtener lista única de operadores
+                operadores = sorted(df_operaciones['Operador'].unique())
 
-        # Crear filtro multiselect para operadores
-        operadores_seleccionados = st.multiselect(
-            'Seleccionar Operadores:',
-            operadores,
-            default=operadores
-        )
+                # Crear filtro multiselect para operadores
+                operadores_seleccionados = st.multiselect(
+                    'Seleccionar Operadores:',
+                    operadores,
+                    default=operadores
+                )
 
-        # Filtrar primero por operadores seleccionados
-        df_filtrado = df_operaciones[
-            df_operaciones['Operador'].isin(operadores_seleccionados)
-        ]
-        
-        # Filtrar solo los registros que tienen cantidad de operaciones mayor a 0
-        df_filtrado = df_filtrado[df_filtrado['Cantidad Operaciones'] > 0]
-        
-        # Ordenar por fecha
-        df_filtrado = df_filtrado.sort_values('Fecha')
+                # Filtrar primero por operadores seleccionados
+                df_filtrado = df_operaciones[
+                    df_operaciones['Operador'].isin(operadores_seleccionados)
+                ]
+                
+                # Filtrar solo los registros que tienen cantidad de operaciones mayor a 0
+                df_filtrado = df_filtrado[df_filtrado['Cantidad Operaciones'] > 0]
+                
+                # Ordenar por fecha
+                df_filtrado = df_filtrado.sort_values('Fecha')
 
-        # Convertir las fechas a formato string para tratarlas como categorías
-        df_filtrado['Fecha_str'] = df_filtrado['Fecha'].dt.strftime('%d/%m/%Y')
+                # Convertir las fechas a formato string para tratarlas como categorías
+                df_filtrado['Fecha_str'] = df_filtrado['Fecha'].dt.strftime('%d/%m/%Y')
+            else:
+                st.warning("No hay datos de operaciones disponibles")
+                df_filtrado = pd.DataFrame()
+        except Exception as e:
+            st.error(f"Error al procesar datos de operaciones: {str(e)}")
+            df_filtrado = pd.DataFrame()
 
         # Crear gráfico de barras interactivo con Plotly
         fig_barras = px.bar(
@@ -277,11 +294,6 @@ else:
     # Sección de seguimiento de caja y ganancias
     st.header("Seguimiento caja y ganancias")
 
-    # Obtener datos
-    historico_caja = fetch_table_data("sgto_historico_caja")
-    tabla_sgto_caja = fetch_table_data("sgto_tabla_datos")
-    historico_caja['Fecha'] = pd.to_datetime(historico_caja['Fecha'])
-
     def format_currency(val):
         return f"${val:,.0f}"
 
@@ -293,27 +305,36 @@ else:
         except:
             return ''
 
-    historico_display = historico_caja.copy()
-    historico_display = historico_display.drop('id', axis=1)
-    historico_display['Fecha'] = historico_display['Fecha'].dt.strftime('%d/%m/%Y')
-
     col1b, col2b = st.columns([1, 2])
-    with col1b: 
-    # Crear estilo para histórico de caja
-        st.subheader("Histórico de Caja")
-        st.dataframe(
-            historico_display.style
-            .format({
-                'Total Caja': format_currency,
-                'Ganancias': format_currency
-            })
-            .set_table_styles([
-                {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black')]},
-                {'selector': 'td', 'props': [('text-align', 'right')]}
-            ])
-            .hide(axis='index'),
-            height=400
-        )
+    
+    try:
+        if historico_caja is not None and not historico_caja.empty:
+            # Procesar datos del histórico
+            historico_display = historico_caja.copy()
+            historico_display = historico_display.drop('id', axis=1)
+            historico_display['Fecha'] = pd.to_datetime(historico_display['Fecha']).dt.strftime('%d/%m/%Y')
+
+            with col1b:
+                st.subheader("Histórico de Caja")
+                st.dataframe(
+                    historico_display.style
+                    .format({
+                        'Total Caja': format_currency,
+                        'Ganancias': format_currency
+                    })
+                    .set_table_styles([
+                        {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black')]},
+                        {'selector': 'td', 'props': [('text-align', 'right')]}
+                    ])
+                    .hide(axis='index'),
+                    height=400
+                )
+        else:
+            with col1b:
+                st.warning("No hay datos históricos de caja disponibles")
+    except Exception as e:
+        with col1b:
+            st.error(f"Error al procesar el histórico de caja: {str(e)}")
     with col2b:
         # Gráfico de línea para Ganancias
         fig_ganancias = px.line(
@@ -336,28 +357,37 @@ else:
 
     # Formatear tabla de seguimiento de caja
     st.subheader("Resumen y proyecciones")
-    tabla_display = tabla_sgto_caja.copy()
-    tabla_display = tabla_display.drop('id', axis=1)
+    try:
+        if tabla_sgto_caja is not None and not tabla_sgto_caja.empty:
+            tabla_display = tabla_sgto_caja.copy()
+            tabla_display = tabla_display.drop('id', axis=1)
 
-    # Crear estilo para tabla de seguimiento
-    st.dataframe(
-        tabla_display.style
-        .format({
-            'HOY': format_currency,
-            'ACUM MES': format_currency,
-            'PROM x DIA': format_currency,
-            'VAR MA': '{:.1%}',
-            'PROY MES': format_currency,
-            'VAR PROY': '{:.1%}',
-            'Obj': format_currency
-        })
-        .applymap(color_percentage, subset=['VAR MA', 'VAR PROY'])
-        .set_table_styles([
-            {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black')]},
-            {'selector': 'td', 'props': [('text-align', 'right')]}
-        ])
-        .hide(axis='index'),
-        height=200
-    )
+            # Crear estilo para tabla de seguimiento
+            styled_df = tabla_display.style.format({
+                'HOY': format_currency,
+                'ACUM MES': format_currency,
+                'PROM x DIA': format_currency,
+                'VAR MA': '{:.1%}',
+                'PROY MES': format_currency,
+                'VAR PROY': '{:.1%}',
+                'Obj': format_currency
+            })
+
+            # Apply color to percentage columns
+            for col in ['VAR MA', 'VAR PROY']:
+                if col in tabla_display.columns:
+                    styled_df = styled_df.map(color_percentage, subset=[col])
+
+            st.dataframe(
+                styled_df.set_table_styles([
+                    {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black')]},
+                    {'selector': 'td', 'props': [('text-align', 'right')]}
+                ]).hide(axis='index'),
+                height=200
+            )
+        else:
+            st.warning("No hay datos de seguimiento de caja disponibles")
+    except Exception as e:
+        st.error(f"Error al procesar la tabla de seguimiento: {str(e)}")
 
 
