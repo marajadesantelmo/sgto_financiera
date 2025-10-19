@@ -19,6 +19,7 @@ df_operaciones = fetch_table_data("sgto_operaciones_operador_por_dia")
 metricas = fetch_table_data("sgto_montos_usd_tdc")
 historico_caja = fetch_table_data("sgto_historico_caja")
 tabla_sgto_caja = fetch_table_data("sgto_tabla_datos")
+tabla_tdc = fetch_table_data("sgto_tabla_tdc")
 def fetch_last_update():
     update_log = fetch_table_data("sgto_log_entry")
     if not update_log.empty:
@@ -98,6 +99,29 @@ with col1a:
         .hide(axis='index'),
         height=400
     )
+
+    # Grafico de lineas con tipo de cambio promedio max y min
+
+    st.subheader("Tipo de Cambio Diario")
+    # Convert Fecha to datetime
+    tabla_tdc['Fecha'] = pd.to_datetime(tabla_tdc['Fecha'])
+    # Sort by date
+    tabla_tdc = tabla_tdc.sort_values('Fecha')
+
+    # Create figure with secondary y axis
+    fig_tdc = px.line(tabla_tdc, x='Fecha', y=['TC Prom', 'TC_min', 'TC_max'],
+                      title='Evolución del Tipo de Cambio')
+
+    fig_tdc.update_layout(
+        xaxis_title='Fecha',
+        yaxis_title='Tipo de Cambio USD',
+        height=400,
+        xaxis_tickformat='%d/%m/%Y',
+        legend_title='Indicador'
+    )
+
+    st.plotly_chart(fig_tdc, use_container_width=True)
+
 with col2a:
     st.header("Operaciones por Operador")
 

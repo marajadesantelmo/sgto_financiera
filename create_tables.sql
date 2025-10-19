@@ -54,3 +54,11 @@ CREATE TABLE sgto_historico_caja (
     "Total Caja" NUMERIC,
     "Ganancias" NUMERIC
 );
+
+CREATE TABLE sgto_tabla_tdc (
+    id SERIAL PRIMARY KEY,
+    "Fecha" DATE,
+    "TC Prom" NUMERIC, 
+    "TC_min" NUMERIC,
+    "TC_max" NUMERIC
+);

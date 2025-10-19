@@ -24,6 +24,8 @@ print("Datos obtenidos de Google Sheets, procesando...")
 data1 = pd.DataFrame(data_range1, columns=columns1)
 data2 = pd.DataFrame(data_range2, columns=columns2)
 data2 = data2.drop(columns=['Libre1', 'Libre2'])
+
+
 operaciones = pd.concat([data1, data2], axis=1)
 operaciones = operaciones.dropna(subset=['Fecha'])
 operaciones = operaciones[operaciones['Operador'] != '']
@@ -70,6 +72,8 @@ operaciones_transformed = pd.DataFrame(transformed)
 operaciones = operaciones_transformed
 operaciones.fillna("0", inplace=True)
 
+
+
 def convert_to_numeric(value):
     if isinstance(value, str):
         # Remove spaces, replace commas with dots (if European format)
@@ -112,6 +116,31 @@ sgto_matriz_operadores_dias['Fecha'] = sgto_matriz_operadores_dias['Fecha'].dt.s
 operaciones_usd = operaciones[(operaciones['Tipo'] == 'USD') & (operaciones['TC'].notna())].copy()   # Qué hacer con los casos donde TC es NaN??
 operaciones_usd.loc[:, 'Monto'] = operaciones_usd['Monto'].abs()
 operaciones_usd['MontoxTC'] = operaciones_usd['Monto'] * operaciones_usd['TC']
+
+tabla_tipo_de_cambio_por_dia = operaciones_usd.groupby('Fecha').agg({
+    'Monto': 'sum',
+    'MontoxTC': 'sum'
+}).reset_index()
+
+tabla_tipo_de_cambio_por_dia['TC Prom'] = tabla_tipo_de_cambio_por_dia['MontoxTC'] / tabla_tipo_de_cambio_por_dia['Monto']
+
+# Calculo de tipo de cambio maximo y minimo por dia
+sgto_montos_usd_tdc = operaciones_usd.groupby('Fecha').agg({
+    'TC': ['min', 'max']
+}).reset_index()
+
+# Reset multi-index and rename columns before merging
+sgto_montos_usd_tdc_flat = sgto_montos_usd_tdc.copy()
+sgto_montos_usd_tdc_flat.columns = ['Fecha', 'TC_min', 'TC_max']
+tabla_tdc = tabla_tipo_de_cambio_por_dia[['Fecha', 'TC Prom']].merge(
+    sgto_montos_usd_tdc_flat,
+    on='Fecha',
+    how='left'
+)
+tabla_tdc['Fecha'] = pd.to_datetime(tabla_tdc['Fecha'], format='%d/%m/%Y').dt.strftime('%Y-%m-%d')
+
+#### Cálculo de métricas principales ###
+
 ayer = pd.to_datetime("today") - pd.Timedelta(days=1)
 ayer = ayer.strftime('%d/%m/%Y')
 
@@ -262,12 +291,14 @@ supabase_client.table('sgto_matriz_operadores_dias').delete().neq('id', 0).execu
 supabase_client.table('sgto_operaciones_operador_por_dia').delete().neq('id', 0).execute()
 supabase_client.table('sgto_tabla_datos').delete().neq('id', 0).execute()
 supabase_client.table('sgto_historico_caja').delete().neq('id', 0).execute()
+supabase_client.table('sgto_tabla_tdc').delete().neq('id', 0).execute()
 
 insert_table_data('sgto_montos_usd_tdc', metricas_df.to_dict(orient='records'))
 insert_table_data('sgto_matriz_operadores_dias', sgto_matriz_operadores_dias.to_dict(orient='records'))
 insert_table_data('sgto_operaciones_operador_por_dia', operaciones_operador_por_dia.to_dict(orient='records'))
 insert_table_data('sgto_tabla_datos', df_tabla.to_dict(orient='records'))
 insert_table_data('sgto_historico_caja', df.to_dict(orient='records'))
+insert_table_data('sgto_tabla_tdc', tabla_tdc.to_dict(orient='records'))
 update_log()
 
 print("Actualización completada.")
