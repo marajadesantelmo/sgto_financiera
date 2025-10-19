@@ -167,10 +167,6 @@ else:
 
     selected_page = label_to_title[selected_label]
     st.session_state['selected_page'] = selected_page
-    st.sidebar.markdown(
-        f"<div class='nav-caption'>{NAV_ITEMS[selected_page]['description']}</div>",
-        unsafe_allow_html=True,
-    )
 
     if selected_page == "Operaciones USD":
         show_page_operaciones()
