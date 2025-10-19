@@ -1,5 +1,10 @@
 import streamlit as st
 import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import plotly.express as px
+import numpy as np
+import os
 from supabase_connection import (
     fetch_table_data, 
     login_user, 
@@ -64,37 +69,27 @@ else:
     
     # Get last update time
     def fetch_last_update():
-        try:
-            update_log = fetch_table_data("sgto_log_entry")
-            if update_log is not None and not update_log.empty:
-                last_update = update_log['Ultimo Update'].max()
-                try:
-                    datetime_obj = pd.to_datetime(last_update)
-                    if pd.isna(datetime_obj):
-                        return "No disponible"
-                    return datetime_obj.strftime("%d/%m/%Y %H:%M")
-                except (ValueError, TypeError):
+        update_log = fetch_table_data("sgto_log_entry")
+        if not update_log.empty:
+            last_update = update_log['Ultimo Update'].max()
+            try:
+                datetime_obj = pd.to_datetime(last_update)
+                if pd.isna(datetime_obj):
                     return "No disponible"
-        except Exception as e:
-            st.error(f"Error al obtener última actualización: {str(e)}")
+                return datetime_obj.strftime("%d/%m/%Y %H:%M")
+            except (ValueError, TypeError):
+                return "No disponible"
         return "No disponible"
     
     last_update = fetch_last_update()
     st.sidebar.info(f"Última actualización: {last_update}")
-    
-    # Show main page instructions
-    st.markdown("""
-    ### Bienvenido al Panel de Control Financiero
 
-    Para comenzar, seleccione una de las siguientes opciones del menú lateral:
-    
-    1. **📈 Operaciones USD**: Visualización de métricas, matriz de operadores y análisis de operaciones en USD.
-    2. **💰 Seguimiento Caja**: Monitoreo de caja, ganancias y proyecciones.
-    
-    Los datos se actualizan automáticamente cada 3 minutos.
-    """)
 
-    # End of main app file
+    # Remove all the remaining visualization code as it's now in the pages
+
+    with col1a:
+        # Mostrar métricas principales
+        st.header("Métricas Principales")
         
         # Formatear los números en formato español con 2 decimales
         monto_usd_ayer = f"${metricas['Monto USD ayer'].iloc[0]:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
