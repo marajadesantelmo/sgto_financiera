@@ -62,15 +62,11 @@ if not st.session_state['authenticated']:
 else:
     st.sidebar.button("Cerrar Sesión", on_click=handle_logout)
     st.sidebar.info(f"Usuario: {st.session_state['user'].email}")
-    
-    # Display welcome message and instructions
-    st.title("📊 Panel de Control Financiero")
-    st.info("Seleccione una página del menú lateral para ver los diferentes análisis.")
-    
+
     # Get last update time
     def fetch_last_update():
         update_log = fetch_table_data("sgto_log_entry")
-        if not update_log.empty:
+        if update_log is not None and not update_log.empty:
             last_update = update_log['Ultimo Update'].max()
             try:
                 datetime_obj = pd.to_datetime(last_update)
@@ -84,18 +80,81 @@ else:
     last_update = fetch_last_update()
     st.sidebar.info(f"Última actualización: {last_update}")
 
+    # Fetch all necessary data
+    df_matriz = fetch_table_data("sgto_matriz_operadores_dias")
+    df_operaciones = fetch_table_data("sgto_operaciones_operador_por_dia")
+    metricas = fetch_table_data("sgto_montos_usd_tdc")
+    historico_caja = fetch_table_data("sgto_historico_caja")
+    tabla_sgto_caja = fetch_table_data("sgto_tabla_datos")
+    tabla_tdc = fetch_table_data("sgto_tabla_tdc")
 
-    # Remove all the remaining visualization code as it's now in the pages
+    # Initialize display DataFrames
+    matriz_display = pd.DataFrame()
+    historico_display = pd.DataFrame()
+    tabla_display = pd.DataFrame()
+    
+    # Process each DataFrame safely
+    try:
+        # Process df_matriz
+        if df_matriz is not None and not df_matriz.empty:
+            df_matriz['Fecha'] = pd.to_datetime(df_matriz['Fecha'], format='%d/%m/%Y')
+            matriz_display = df_matriz.copy()
+
+        # Process df_operaciones
+        if df_operaciones is not None and not df_operaciones.empty:
+            df_operaciones['Fecha'] = pd.to_datetime(df_operaciones['Fecha'], format='%d/%m/%Y')
+        
+        # Process historico_caja
+        if historico_caja is not None and not historico_caja.empty:
+            historico_caja['Fecha'] = pd.to_datetime(historico_caja['Fecha'])
+            historico_display = historico_caja.copy()
+
+        # Process tabla_tdc
+        if tabla_tdc is not None and not tabla_tdc.empty:
+            tabla_tdc['Fecha'] = pd.to_datetime(tabla_tdc['Fecha'])
+            tabla_tdc = tabla_tdc.sort_values('Fecha')
+            
+        # Process tabla_sgto_caja
+        if tabla_sgto_caja is not None and not tabla_sgto_caja.empty:
+            tabla_display = tabla_sgto_caja.copy()
+            
+        # Check if any essential data is missing
+        missing_data = []
+        if matriz_display.empty:
+            missing_data.append("Matriz de Operadores")
+        if historico_display.empty:
+            missing_data.append("Histórico de Caja")
+        if tabla_display.empty:
+            missing_data.append("Tabla de Datos")
+            
+        if missing_data:
+            st.warning(f"Algunos datos no están disponibles: {', '.join(missing_data)}")
+            
+    except Exception as e:
+        st.error(f"Error al procesar los datos: {str(e)}")
+        st.stop()
+
+    # App title
+    st.title("📊 Análisis de Operaciones Financieras")
+
+    # Layout setup
+    col1a, col2a = st.columns(2)
 
     with col1a:
         # Mostrar métricas principales
         st.header("Métricas Principales")
         
         # Formatear los números en formato español con 2 decimales
-        monto_usd_ayer = f"${metricas['Monto USD ayer'].iloc[0]:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        tdc_ayer = f"$ {metricas['TdC ayer'].iloc[0]:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        monto_usd_hoy = f"${metricas['Monto USD hoy'].iloc[0]:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        tdc_hoy = f"$ {metricas['TdC hoy'].iloc[0]:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        if metricas is not None and not metricas.empty:
+            try:
+                monto_usd_ayer = f"${metricas['Monto USD ayer'].iloc[0]:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                tdc_ayer = f"$ {metricas['TdC ayer'].iloc[0]:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                monto_usd_hoy = f"${metricas['Monto USD hoy'].iloc[0]:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                tdc_hoy = f"$ {metricas['TdC hoy'].iloc[0]:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            except (KeyError, IndexError):
+                monto_usd_ayer = tdc_ayer = monto_usd_hoy = tdc_hoy = "No disponible"
+        else:
+            monto_usd_ayer = tdc_ayer = monto_usd_hoy = tdc_hoy = "No disponible"
 
         # Crear cuatro columnas para las métricas
         met_col1, met_col2, met_col3, met_col4 = st.columns(4)

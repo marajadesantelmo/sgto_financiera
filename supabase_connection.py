@@ -50,13 +50,17 @@ def fetch_table_data(table_name, retries=3, delay=5):
                 .select('*')
                 .execute()
             )
-            return pd.DataFrame(query.data)
+            df = pd.DataFrame(query.data)
+            if df.empty:
+                print(f"Warning: No data found in {table_name}")
+            return df
         except Exception as e:
             print(f"Attempt {attempt + 1} failed: {e}")
             if attempt < retries - 1:
                 time.sleep(delay)
             else:
-                raise Exception(f"Failed to fetch data from {table_name} after {retries} attempts")
+                print(f"Failed to fetch data from {table_name} after {retries} attempts")
+                return pd.DataFrame()
 
 def insert_table_data(table_name, data):
     for record in data:
