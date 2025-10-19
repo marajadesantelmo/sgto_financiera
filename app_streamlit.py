@@ -26,16 +26,19 @@ if 'user' not in st.session_state:
     st.session_state['user'] = None
 
 def login():
-    email = st.session_state.email
-    password = st.session_state.password
-    
-    user = login_user(email, password)
-    if user:
-        st.session_state['authenticated'] = True
-        st.session_state['user'] = user
-        st.rerun()
-    else:
-        st.error('Credenciales incorrectas')
+    try:
+        email = st.session_state.email
+        password = st.session_state.password
+        
+        user = login_user(email, password)
+        if user:
+            st.session_state['authenticated'] = True
+            st.session_state['user'] = user
+            st.rerun()
+        else:
+            st.error('Credenciales incorrectas')
+    except Exception as e:
+        st.error(f'Error al iniciar sesión: {str(e)}')
 
 def logout():
     if logout_user():

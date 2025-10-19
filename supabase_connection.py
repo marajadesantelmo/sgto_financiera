@@ -12,18 +12,23 @@ supabase_client = create_client(url_supabase, key_supabase)
 
 def login_user(email: str, password: str) -> Optional[Dict]:
     try:
-        response = supabase_client.auth.sign_in_with_password({
+        auth_response = supabase_client.auth.sign_in_with_password({
             "email": email,
             "password": password
         })
-        return response.user
+        if auth_response.user:
+            return auth_response.user
+        return None
     except Exception as e:
         print(f"Error during login: {e}")
         return None
 
 def get_user_session():
     try:
-        return supabase_client.auth.get_session()
+        session = supabase_client.auth.get_session()
+        if session and session.user:
+            return session
+        return None
     except Exception as e:
         print(f"Error getting session: {e}")
         return None
