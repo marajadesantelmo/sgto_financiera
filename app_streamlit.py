@@ -111,10 +111,18 @@ with col1a:
                       labels={'TC_min': 'Min', 'TC_max': 'Max'})
 
     fig_tdc.update_layout(
-        height=400,
+        height=600,
         xaxis_tickformat='%d/%m/%Y',
-        legend_title='Indicador',
-        yaxis=dict(range=[1300, 1600])
+        showlegend=False,  # Hide legend
+        yaxis=dict(range=[1300, 1600]),
+        plot_bgcolor='rgba(0,0,0,0)',  # Transparent background
+        paper_bgcolor='rgba(0,0,0,0)'  # Transparent surrounding
+    )
+
+    # Add shadow effect
+    fig_tdc.update_traces(
+        line=dict(shadow=True, width=3),  # Thicker lines with shadow
+        mode='lines'  # Ensure we're using lines
     )
 
     st.plotly_chart(fig_tdc, use_container_width=True)
