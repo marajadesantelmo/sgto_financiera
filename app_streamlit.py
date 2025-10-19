@@ -113,7 +113,7 @@ with col1a:
     fig_tdc.update_layout(
         height=600,
         xaxis_tickformat='%d/%m/%Y',
-        legend_title='Indicador',
+        showlegend=False,
         yaxis=dict(range=[1300, 1600])
     )
 
