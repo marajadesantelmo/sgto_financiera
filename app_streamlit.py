@@ -51,7 +51,7 @@ if not st.session_state['authenticated']:
                     st.session_state['authenticated'] = True
                     st.session_state['user'] = user
                     st.session_state['login_submitted'] = False
-                    st.experimental_rerun()
+                    st.success('Login exitoso!')
                 else:
                     st.error('Credenciales incorrectas')
                     st.session_state['login_submitted'] = False
