@@ -24,27 +24,16 @@ if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
 if 'user' not in st.session_state:
     st.session_state['user'] = None
+if 'login_submitted' not in st.session_state:
+    st.session_state['login_submitted'] = False
 
-def login():
-    try:
-        email = st.session_state.email
-        password = st.session_state.password
-        
-        user = login_user(email, password)
-        if user:
-            st.session_state['authenticated'] = True
-            st.session_state['user'] = user
-            st.rerun()
-        else:
-            st.error('Credenciales incorrectas')
-    except Exception as e:
-        st.error(f'Error al iniciar sesión: {str(e)}')
+def handle_login():
+    st.session_state['login_submitted'] = True
 
-def logout():
-    if logout_user():
-        st.session_state['authenticated'] = False
-        st.session_state['user'] = None
-        st.rerun()
+def handle_logout():
+    st.session_state['authenticated'] = False
+    st.session_state['user'] = None
+    logout_user()
 
 # Página de login
 if not st.session_state['authenticated']:
@@ -53,10 +42,25 @@ if not st.session_state['authenticated']:
     with st.form("login_form"):
         st.text_input("Email", key="email")
         st.text_input("Contraseña", type="password", key="password")
-        st.form_submit_button("Iniciar Sesión", on_click=login)
+        submitted = st.form_submit_button("Iniciar Sesión", on_click=handle_login)
+        
+        if st.session_state.login_submitted:
+            try:
+                user = login_user(st.session_state.email, st.session_state.password)
+                if user:
+                    st.session_state['authenticated'] = True
+                    st.session_state['user'] = user
+                    st.session_state['login_submitted'] = False
+                    st.experimental_rerun()
+                else:
+                    st.error('Credenciales incorrectas')
+                    st.session_state['login_submitted'] = False
+            except Exception as e:
+                st.error(f'Error al iniciar sesión: {str(e)}')
+                st.session_state['login_submitted'] = False
 
 else:
-    st.sidebar.button("Cerrar Sesión", on_click=logout)
+    st.sidebar.button("Cerrar Sesión", on_click=handle_logout)
     st.sidebar.info(f"Usuario: {st.session_state['user'].email}")
     
     df_matriz = fetch_table_data("sgto_matriz_operadores_dias")
