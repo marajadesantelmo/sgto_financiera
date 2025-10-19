@@ -215,7 +215,6 @@ else:
                 tabla_tdc = tabla_tdc.sort_values('Fecha')
             except Exception as e:
                 st.error(f"Error al procesar los datos de tipo de cambio: {str(e)}")
-                return
 
         # Create figure with secondary y axis
         fig_tdc = px.line(tabla_tdc, x='Fecha', y=['TC Prom', 'TC_min', 'TC_max'],
