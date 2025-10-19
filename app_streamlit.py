@@ -101,23 +101,20 @@ with col1a:
     )
 
     # Grafico de lineas con tipo de cambio promedio max y min
-
-    st.subheader("Tipo de Cambio Diario")
-    # Convert Fecha to datetime
     tabla_tdc['Fecha'] = pd.to_datetime(tabla_tdc['Fecha'])
     # Sort by date
     tabla_tdc = tabla_tdc.sort_values('Fecha')
 
     # Create figure with secondary y axis
     fig_tdc = px.line(tabla_tdc, x='Fecha', y=['TC Prom', 'TC_min', 'TC_max'],
-                      title='Evolución del Tipo de Cambio')
+                      title='Evolución del Tipo de Cambio',
+                      labels={'TC_min': 'Min', 'TC_max': 'Max'})
 
     fig_tdc.update_layout(
-        xaxis_title='Fecha',
-        yaxis_title='Tipo de Cambio USD',
         height=400,
         xaxis_tickformat='%d/%m/%Y',
-        legend_title='Indicador'
+        legend_title='Indicador',
+        yaxis=dict(range=[1300, 1600])
     )
 
     st.plotly_chart(fig_tdc, use_container_width=True)
