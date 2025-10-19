@@ -35,8 +35,6 @@ def show_page_operaciones():
 
     # Initialize display DataFrames
     matriz_display = pd.DataFrame()
-    historico_display = pd.DataFrame()
-    tabla_display = pd.DataFrame()
 
     # Process each DataFrame safely
     try:
@@ -58,10 +56,6 @@ def show_page_operaciones():
         missing_data = []
         if matriz_display.empty:
             missing_data.append("Matriz de Operadores")
-        if historico_display.empty:
-            missing_data.append("Histórico de Caja")
-        if tabla_display.empty:
-            missing_data.append("Tabla de Datos")
             
         if missing_data:
             st.warning(f"Algunos datos no están disponibles: {', '.join(missing_data)}")
