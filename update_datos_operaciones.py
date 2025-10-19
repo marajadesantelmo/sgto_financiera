@@ -25,11 +25,10 @@ data1 = pd.DataFrame(data_range1, columns=columns1)
 data2 = pd.DataFrame(data_range2, columns=columns2)
 data2 = data2.drop(columns=['Libre1', 'Libre2'])
 
-
 operaciones = pd.concat([data1, data2], axis=1)
-operaciones = operaciones.dropna(subset=['Fecha'])
-operaciones = operaciones[operaciones['Operador'] != '']
-operaciones = operaciones[operaciones['Operador'].notna()]
+operaciones = operaciones.dropna(subset=['Fecha'])           #Quito casos sin fecha
+operaciones = operaciones[operaciones['Operador'] != '']     #Quito casos con Operador vacío
+operaciones = operaciones[operaciones['Operador'].notna()]   #Quito casos con Operador NaN
 transformed = []
 for _, row in operaciones.iterrows():
     # Common fields for all rows
@@ -71,9 +70,6 @@ for _, row in operaciones.iterrows():
 operaciones_transformed = pd.DataFrame(transformed)
 operaciones = operaciones_transformed
 operaciones.fillna("0", inplace=True)
-
-
-
 def convert_to_numeric(value):
     if isinstance(value, str):
         # Remove spaces, replace commas with dots (if European format)
@@ -100,6 +96,7 @@ operaciones['Monto'] = pd.to_numeric(operaciones['Monto'], errors='coerce')
 operaciones['TC'] = pd.to_numeric(operaciones['TC'], errors='coerce')
 operaciones['Total pesos'] = pd.to_numeric(operaciones['Total pesos'], errors='coerce')
 operaciones['Caja Acum'] = pd.to_numeric(operaciones['Caja Acum'], errors='coerce')
+
 operaciones_operador_por_dia = operaciones.groupby(['Fecha', 'Operador']).size().reset_index(name='Cantidad Operaciones')
 operador_operaciones_pivot = operaciones_operador_por_dia.pivot_table(
     index='Fecha', 

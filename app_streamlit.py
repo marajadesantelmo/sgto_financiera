@@ -1,16 +1,66 @@
 import streamlit as st
-st.set_page_config(
-    page_title="Análisis de Operaciones Financieras",
-    page_icon="📊",
-    layout="wide"
-)
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import plotly.express as px
 import numpy as np
 import os
-from supabase_connection import fetch_table_data
+from supabase_connection import (
+    fetch_table_data, 
+    login_user, 
+    logout_user, 
+    get_user_session
+)
+
+# Configuración de la página
+st.set_page_config(
+    page_title="Análisis de Operaciones Financieras",
+    page_icon="📊",
+    layout="wide"
+)
+
+# Inicialización de estado de sesión
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = False
+if 'user' not in st.session_state:
+    st.session_state['user'] = None
+
+def login():
+    email = st.session_state.email
+    password = st.session_state.password
+    
+    user = login_user(email, password)
+    if user:
+        st.session_state['authenticated'] = True
+        st.session_state['user'] = user
+        st.rerun()
+    else:
+        st.error('Credenciales incorrectas')
+
+def logout():
+    if logout_user():
+        st.session_state['authenticated'] = False
+        st.session_state['user'] = None
+        st.rerun()
+
+# Página de login
+if not st.session_state['authenticated']:
+    st.title("🔐 Acceso al Sistema")
+    
+    with st.form("login_form"):
+        st.text_input("Email", key="email")
+        st.text_input("Contraseña", type="password", key="password")
+        st.form_submit_button("Iniciar Sesión", on_click=login)
+
+else:
+    # Mostrar botón de logout
+    st.sidebar.button("Cerrar Sesión", on_click=logout)
+    
+    # Mostrar email del usuario
+    st.sidebar.info(f"Usuario: {st.session_state['user'].email}")
+    
+    # Contenido principal del dashboard
+    st.title("📊 Análisis de Operaciones Financieras")
 
 
 

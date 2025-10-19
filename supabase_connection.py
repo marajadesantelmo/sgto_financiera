@@ -3,11 +3,38 @@ import os
 from datetime import datetime
 from supabase import create_client, Client
 import time
+from typing import Optional, Dict
 
 url_supabase = os.getenv("url_supabase")
-key_supabase= os.getenv("key_supabase")
+key_supabase = os.getenv("key_supabase")
 
 supabase_client = create_client(url_supabase, key_supabase)
+
+def login_user(email: str, password: str) -> Optional[Dict]:
+    try:
+        response = supabase_client.auth.sign_in_with_password({
+            "email": email,
+            "password": password
+        })
+        return response.user
+    except Exception as e:
+        print(f"Error during login: {e}")
+        return None
+
+def get_user_session():
+    try:
+        return supabase_client.auth.get_session()
+    except Exception as e:
+        print(f"Error getting session: {e}")
+        return None
+
+def logout_user():
+    try:
+        supabase_client.auth.sign_out()
+        return True
+    except Exception as e:
+        print(f"Error during logout: {e}")
+        return False
 
 def fetch_table_data(table_name, retries=3, delay=5):
     for attempt in range(retries):
