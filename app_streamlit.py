@@ -112,9 +112,9 @@ with col1a:
 
     fig_tdc.update_layout(
         height=600,
-        xaxis_tickformat='%d/%m/%Y',
+        xaxis=dict(tickformat='%d/%m/%Y', title=''),
         showlegend=False,
-        yaxis=dict(range=[1300, 1600])
+        yaxis=dict(range=[1300, 1600], title='')
     )
 
     st.plotly_chart(fig_tdc, use_container_width=True)
