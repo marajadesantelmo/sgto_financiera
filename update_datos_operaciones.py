@@ -280,6 +280,7 @@ def update_log():
     log_entry = {
         "Ultimo Update": datetime.now().isoformat()
     }
+    supabase_client.table('sgto_log_entry').delete().neq('id', 0).execute()
     supabase_client.from_("sgto_log_entry").insert(log_entry).execute()
 
 
