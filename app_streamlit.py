@@ -153,7 +153,6 @@ else:
 
     nav_container = st.sidebar.container()
     with nav_container:
-        st.markdown('<div class="nav-wrapper">', unsafe_allow_html=True)
         option_labels = [f"{item['icon']}  {title}" for title, item in NAV_ITEMS.items()]
         label_to_title = dict(zip(option_labels, NAV_ITEMS.keys()))
         default_label = f"{NAV_ITEMS[st.session_state['selected_page']]['icon']}  {st.session_state['selected_page']}"
@@ -170,10 +169,6 @@ else:
 
     selected_page = label_to_title[selected_label]
     st.session_state['selected_page'] = selected_page
-    st.sidebar.markdown(
-        f"<div class='nav-caption'>{NAV_ITEMS[selected_page]['icon']} {selected_page}</div>",
-        unsafe_allow_html=True,
-    )
 
     if selected_page == "Operaciones USD":
         show_page_operaciones()
