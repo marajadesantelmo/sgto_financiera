@@ -13,9 +13,9 @@ st.set_page_config(
     layout="wide"
 )
 
-# Initialize cookie manager (without caching to avoid widget warning)
+# Initialize cookie manager with unique key (without caching to avoid widget warning)
 if 'cookie_manager' not in st.session_state:
-    st.session_state['cookie_manager'] = stx.CookieManager()
+    st.session_state['cookie_manager'] = stx.CookieManager(key='sgto_financiera_cookies')
 
 cookie_manager = st.session_state['cookie_manager']
 
