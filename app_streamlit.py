@@ -13,12 +13,11 @@ st.set_page_config(
     layout="wide"
 )
 
-# Initialize cookie manager
-@st.cache_resource
-def get_cookie_manager():
-    return stx.CookieManager()
+# Initialize cookie manager (without caching to avoid widget warning)
+if 'cookie_manager' not in st.session_state:
+    st.session_state['cookie_manager'] = stx.CookieManager()
 
-cookie_manager = get_cookie_manager()
+cookie_manager = st.session_state['cookie_manager']
 
 # Inicialización de estado de sesión
 if 'authenticated' not in st.session_state:
