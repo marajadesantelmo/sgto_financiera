@@ -46,8 +46,8 @@ if not st.session_state['cookies_loaded']:
                         st.session_state['user'] = user
                 except:
                     # If auto-login fails, clear invalid cookies
-                    cookie_manager.delete('saved_email')
-                    cookie_manager.delete('saved_password')
+                    cookie_manager.delete('saved_email', key='cookie_email_deleter_auto')
+                    cookie_manager.delete('saved_password', key='cookie_password_deleter_auto')
     except:
         pass
 
@@ -56,8 +56,8 @@ def handle_logout():
     st.session_state['user'] = None
     logout_user()
     # Clear cookies on logout
-    cookie_manager.delete('saved_email')
-    cookie_manager.delete('saved_password')
+    cookie_manager.delete('saved_email', key='cookie_email_deleter_logout')
+    cookie_manager.delete('saved_password', key='cookie_password_deleter_logout')
 
 # Página de login
 if not st.session_state['authenticated']:
@@ -79,9 +79,9 @@ if not st.session_state['authenticated']:
                 # Save credentials in cookies if "Remember me" is checked
                 if remember_me and cookie_manager:
                     try:
-                        # Set cookies without expiration (permanent)
-                        cookie_manager.set('saved_email', email)
-                        cookie_manager.set('saved_password', password)
+                        # Set cookies without expiration (permanent) with unique keys
+                        cookie_manager.set('saved_email', email, key='cookie_email_setter')
+                        cookie_manager.set('saved_password', password, key='cookie_password_setter')
                     except Exception as e:
                         st.warning(f"No se pudieron guardar las credenciales: {str(e)}")
                 
