@@ -201,8 +201,7 @@ else:
         </style>
         """, unsafe_allow_html=True)
 
-    selected_page = label_to_title[selected_label]
-    st.session_state['selected_page'] = selected_page
+    selected_page = st.session_state['selected_page']
 
     if selected_page == "Operaciones USD":
         show_page_operaciones()
