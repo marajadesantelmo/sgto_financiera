@@ -1,8 +1,10 @@
 import streamlit as st
+import extra_streamlit_components as stx
 from app_operaciones_usd import show_page_operaciones
 from app_sgto_caja import show_page_caja
 from app_analisis_clientes import show_page_analisis_clientes
 from supabase_connection import login_user, logout_user
+from datetime import datetime, timedelta
 
 # Configuración de la página
 st.set_page_config(
@@ -11,17 +13,52 @@ st.set_page_config(
     layout="wide"
 )
 
+# Initialize cookie manager
+@st.cache_resource
+def get_cookie_manager():
+    return stx.CookieManager()
+
+cookie_manager = get_cookie_manager()
+
 # Inicialización de estado de sesión
 if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
 if 'user' not in st.session_state:
     st.session_state['user'] = None
- 
+if 'cookies_loaded' not in st.session_state:
+    st.session_state['cookies_loaded'] = False
+
+# Load cookies and auto-login if credentials exist
+if not st.session_state['cookies_loaded']:
+    try:
+        # Wait for cookies to be ready
+        all_cookies = cookie_manager.get_all()
+        if all_cookies is not None:
+            st.session_state['cookies_loaded'] = True
+            
+            saved_email = cookie_manager.get('saved_email')
+            saved_password = cookie_manager.get('saved_password')
+            
+            if saved_email and saved_password and not st.session_state['authenticated']:
+                try:
+                    user = login_user(saved_email, saved_password)
+                    if user:
+                        st.session_state['authenticated'] = True
+                        st.session_state['user'] = user
+                except:
+                    # If auto-login fails, clear invalid cookies
+                    cookie_manager.delete('saved_email')
+                    cookie_manager.delete('saved_password')
+    except:
+        pass
 
 def handle_logout():
     st.session_state['authenticated'] = False
     st.session_state['user'] = None
     logout_user()
+    # Clear cookies on logout
+    cookie_manager.delete('saved_email')
+    cookie_manager.delete('saved_password')
 
 # Página de login
 if not st.session_state['authenticated']:
@@ -30,6 +67,7 @@ if not st.session_state['authenticated']:
     with st.form("login_form"):
         email = st.text_input("Email")
         password = st.text_input("Contraseña", type="password")
+        remember_me = st.checkbox("Recordar mis credenciales", value=True)
         submitted = st.form_submit_button("Iniciar Sesión")
 
     if submitted:
@@ -38,6 +76,17 @@ if not st.session_state['authenticated']:
             if user:
                 st.session_state['authenticated'] = True
                 st.session_state['user'] = user
+                
+                # Save credentials in cookies if "Remember me" is checked
+                if remember_me and cookie_manager:
+                    try:
+                        # Set cookies to expire in 30 days
+                        expires = datetime.now() + timedelta(days=30)
+                        cookie_manager.set('saved_email', email, expires_at=expires)
+                        cookie_manager.set('saved_password', password, expires_at=expires)
+                    except Exception as e:
+                        st.warning(f"No se pudieron guardar las credenciales: {str(e)}")
+                
                 st.success('Login exitoso!')
                 st.rerun()
             else:
