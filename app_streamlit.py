@@ -79,10 +79,9 @@ if not st.session_state['authenticated']:
                 # Save credentials in cookies if "Remember me" is checked
                 if remember_me and cookie_manager:
                     try:
-                        # Set cookies to expire in 30 days
-                        expires = datetime.now() + timedelta(days=30)
-                        cookie_manager.set('saved_email', email, expires_at=expires)
-                        cookie_manager.set('saved_password', password, expires_at=expires)
+                        # Set cookies without expiration (permanent)
+                        cookie_manager.set('saved_email', email)
+                        cookie_manager.set('saved_password', password)
                     except Exception as e:
                         st.warning(f"No se pudieron guardar las credenciales: {str(e)}")
                 
