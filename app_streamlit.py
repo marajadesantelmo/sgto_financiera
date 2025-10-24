@@ -151,9 +151,7 @@ else:
         )
 
     nav_container = st.sidebar.container()
-    with nav_container:
-        st.markdown('<div class="nav-wrapper">', unsafe_allow_html=True)
-        
+    with nav_container:      
         for title, item in NAV_ITEMS.items():
             is_selected = st.session_state['selected_page'] == title
             button_class = "nav-button selected" if is_selected else "nav-button"

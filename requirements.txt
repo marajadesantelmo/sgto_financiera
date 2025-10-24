@@ -2,3 +2,5 @@ seaborn
 matplotlib
 supabase
 plotly
+streamlit-cookies-manager
+extra-streamlit-components
