@@ -6,70 +6,6 @@ from supabase import create_client, Client
 supabase_client = create_client(url_supabase, key_supabase)
 from datetime import datetime
 
-print("Iniciando actualización de datos de operaciones...")
-if os.path.exists('\\\\dc01\\Usuarios\\PowerBI\\flastra\\Documents\\sgto_financiera\\credenciales_gsheets.json'):
-    gc = gspread.service_account('\\\\dc01\\Usuarios\\PowerBI\\flastra\\Documents\\sgto_financiera\\credenciales_gsheets.json')
-elif os.path.exists('credenciales_gsheets.json'):
-    gc = gspread.service_account(filename='credenciales_gsheets.json')
-#Operaciones
-sheet_url = 'https://docs.google.com/spreadsheets/d/1luAwlud_R8-GDIYZRiQuuSIOnF5RuPATZdqdIDm-0j8'
-sh = gc.open_by_url(sheet_url)
-worksheet = sh.worksheet('Operaciones Octubre 2025')
-columns1 = ['Fecha', 'Operador', 'Cliente']
-columns2 = ['USD - Monto', 'USD - TC', 'USD - Total pesos', 'USD - Caja Acum', 'Libre1', 'PESOS - Monto', 'PESOS - Caja Acum', 'Libre2',
-           'TFS SALTA - Monto', 'TFS Salta - Caja Acum']
-data_range1 = worksheet.get('A4:C3961')
-data_range2 = worksheet.get('F4:P3961')
-print("Datos obtenidos de Google Sheets, procesando...")
-data1 = pd.DataFrame(data_range1, columns=columns1)
-data2 = pd.DataFrame(data_range2, columns=columns2)
-data2 = data2.drop(columns=['Libre1', 'Libre2'])
-
-operaciones = pd.concat([data1, data2], axis=1)
-operaciones = operaciones.dropna(subset=['Fecha'])           #Quito casos sin fecha
-operaciones = operaciones[operaciones['Operador'] != '']     #Quito casos con Operador vacío
-operaciones = operaciones[operaciones['Operador'].notna()]   #Quito casos con Operador NaN
-transformed = []
-for _, row in operaciones.iterrows():
-    # Common fields for all rows
-    base_data = {
-        'Fecha': row['Fecha'],
-        'Operador': row['Operador'],
-        'Cliente': row['Cliente']
-    }
-    
-    # Check USD data
-    if pd.notna(row['USD - Monto']) and str(row['USD - Monto']).strip() not in ['', '-']:
-        usd_data = base_data.copy()
-        usd_data['Tipo'] = 'USD'
-        usd_data['Monto'] = row['USD - Monto']
-        usd_data['TC'] = row['USD - TC']
-        usd_data['Total pesos'] = row['USD - Total pesos']
-        usd_data['Caja Acum'] = row['USD - Caja Acum']
-        transformed.append(usd_data)
-    
-    # Check PESOS data
-    if pd.notna(row['PESOS - Monto']) and str(row['PESOS - Monto']).strip() not in ['', '-']:
-        pesos_data = base_data.copy()
-        pesos_data['Tipo'] = 'PESOS'
-        pesos_data['Monto'] = row['PESOS - Monto']
-        pesos_data['TC'] = None
-        pesos_data['Total pesos'] = row['PESOS - Monto']  # Same as monto for pesos
-        pesos_data['Caja Acum'] = row['PESOS - Caja Acum']
-        transformed.append(pesos_data)
-    
-    # Check TFS SALTA data
-    if pd.notna(row['TFS SALTA - Monto']) and str(row['TFS SALTA - Monto']).strip() not in ['', '-']:
-        tfs_data = base_data.copy()
-        tfs_data['Tipo'] = 'TFS SALTA'
-        tfs_data['Monto'] = row['TFS SALTA - Monto']
-        tfs_data['TC'] = None
-        tfs_data['Total pesos'] = None
-        tfs_data['Caja Acum'] = row['TFS Salta - Caja Acum']
-        transformed.append(tfs_data)
-operaciones_transformed = pd.DataFrame(transformed)
-operaciones = operaciones_transformed
-operaciones.fillna("0", inplace=True)
 def convert_to_numeric(value):
     if isinstance(value, str):
         # Remove spaces, replace commas with dots (if European format)
@@ -88,14 +24,176 @@ def convert_to_numeric(value):
             return value
     return value
 
-numeric_columns = ['Monto', 'TC', 'Total pesos', 'Caja Acum']
+
+print("Iniciando actualización de datos de operaciones...")
+if os.path.exists('\\\\dc01\\Usuarios\\PowerBI\\flastra\\Documents\\sgto_financiera\\credenciales_gsheets.json'):
+    gc = gspread.service_account('\\\\dc01\\Usuarios\\PowerBI\\flastra\\Documents\\sgto_financiera\\credenciales_gsheets.json')
+elif os.path.exists('credenciales_gsheets.json'):
+    gc = gspread.service_account(filename='credenciales_gsheets.json')
+#Operaciones
+sheet_url = 'https://docs.google.com/spreadsheets/d/1luAwlud_R8-GDIYZRiQuuSIOnF5RuPATZdqdIDm-0j8'
+sh = gc.open_by_url(sheet_url)
+worksheet = sh.worksheet('Operaciones Octubre 2025')
+
+#Datos generales
+columns1 = ['Fecha', 'Operador', 'Cliente']
+data_range1 = worksheet.get('A4:C3961')
+data1 = pd.DataFrame(data_range1, columns=columns1)
+
+#Datos de monto, moneda, caja y tc
+columns_usd = ['Monto', 'TC']
+columns_pesos = ['Monto']
+
+data_range2 = worksheet.get('F4:G3961')
+data2 = pd.DataFrame(data_range2, columns=columns_usd)
+
+data2 = pd.concat([data1, data2], axis=1)
+data2 = data2.dropna(subset=['Monto'])
+data2['Moneda'] = 'USD'
+data2['Caja'] = 'Salta'
+
+data_range3 = worksheet.get('K4:K3961')
+data3 = pd.DataFrame(data_range3, columns=columns_pesos)
+data3 = pd.concat([data1, data3], axis=1)
+data3 = data3.dropna(subset=['Monto'])
+data3['Moneda'] = 'Pesos'
+data3['Caja'] = 'Salta'
+
+data_range4 = worksheet.get('N4:N3961')
+data4 = pd.DataFrame(data_range4, columns=columns_pesos)
+data4 = pd.concat([data1, data4], axis=1)
+data4 = data4.dropna(subset=['Monto'])
+data4['Moneda'] = 'Transferencia'
+data4['Caja'] = 'Salta'
+
+data_range5 = worksheet.get('Q4:R3961')
+data5 = pd.DataFrame(data_range5, columns=columns_usd)
+data5 = pd.concat([data1, data5], axis=1)
+data5 = data5.dropna(subset=['Monto'])
+data5['Moneda'] = 'USD'
+data5['Caja'] = 'Office Park'
+
+data_range6 = worksheet.get('V4:V3961')
+data6 = pd.DataFrame(data_range6, columns=columns_pesos)
+data6 = pd.concat([data1, data6], axis=1)
+data6 = data6.dropna(subset=['Monto'])
+data6['Moneda'] = 'Pesos'
+data6['Caja'] = 'Office Park'
+
+data_range7 = worksheet.get('Y4:Y3961')
+data7 = pd.DataFrame(data_range7, columns=columns_pesos)
+data7 = pd.concat([data1, data7], axis=1)
+data7 = data7.dropna(subset=['Monto'])
+data7['Moneda'] = 'Transferencia'
+data7['Caja'] = 'Office Park'
+
+data_range8 = worksheet.get('AB4:AB3961')
+data8 = pd.DataFrame(data_range8, columns=columns_pesos)
+data8 = pd.concat([data1, data8], axis=1)
+data8 = data8.dropna(subset=['Monto'])
+data8['Moneda'] = 'Euros'
+data8['Caja'] = 'Office Park'
+
+data_range9 = worksheet.get('AE4:AE3961')
+data9 = pd.DataFrame(data_range9, columns=columns_pesos)
+data9 = pd.concat([data1, data9], axis=1)
+data9 = data9.dropna(subset=['Monto'])
+data9['Moneda'] = 'Euros'
+data9['Caja'] = 'Salta'
+
+data_range10 = worksheet.get('AH4:AH3961')
+data10 = pd.DataFrame(data_range10, columns=columns_pesos)
+data10 = pd.concat([data1, data10], axis=1)
+data10 = data10.dropna(subset=['Monto'])
+data10['Moneda'] = 'USDT'
+data10['Caja'] = 'Salta'
+
+data_range11 = worksheet.get('AK4:AK3961')
+data11 = pd.DataFrame(data_range11, columns=columns_pesos)
+data11 = pd.concat([data1, data11], axis=1)
+data11 = data11.dropna(subset=['Monto'])
+data11['Moneda'] = 'USD'
+data11['Caja'] = 'Mindful'
+
+data_range12 = worksheet.get('AN4:AO3961')
+data12 = pd.DataFrame(data_range12, columns=columns_usd)
+data12 = pd.concat([data1, data12], axis=1)
+data12 = data12.dropna(subset=['Monto'])
+data12['Moneda'] = 'USD'
+data12['Caja'] = 'Reconquista CABA'
+
+data_range13 = worksheet.get('AS4:AS3961')
+data13 = pd.DataFrame(data_range13, columns=columns_pesos)
+data13 = pd.concat([data1, data13], axis=1)
+data13 = data13.dropna(subset=['Monto'])
+data13['Moneda'] = 'Pesos'
+data13['Caja'] = 'Reconquista CABA'
+
+data_range14 = worksheet.get('AV4:AV3961')
+data14 = pd.DataFrame(data_range14, columns=columns_pesos)
+data14 = pd.concat([data1, data14], axis=1)
+data14 = data14.dropna(subset=['Monto'])
+data14['Moneda'] = 'Transferencia'
+data14['Caja'] = 'Reconquista CABA'
+
+data_range15 = worksheet.get('AY4:AY3961')
+data15 = pd.DataFrame(data_range15, columns=columns_pesos)
+data15 = pd.concat([data1, data15], axis=1)
+data15 = data15.dropna(subset=['Monto'])
+data15['Moneda'] = 'Euros'
+data15['Caja'] = 'Reconquista CABA'
+
+operaciones = pd.concat([data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14, data15], ignore_index=True)
+operaciones = operaciones[operaciones['Cliente'] != 'APERTURA DE CAJA OCTUBRE']
+operaciones['Cliente'] = operaciones['Cliente'].str.strip().str.title()
+operaciones.dropna(subset=['Fecha'], inplace=True)
+operaciones.fillna("0", inplace=True)
+numeric_columns = ['Monto', 'TC']
 for col in numeric_columns:
     operaciones[col] = operaciones[col].apply(convert_to_numeric)
 
 operaciones['Monto'] = pd.to_numeric(operaciones['Monto'], errors='coerce')
 operaciones['TC'] = pd.to_numeric(operaciones['TC'], errors='coerce')
-operaciones['Total pesos'] = pd.to_numeric(operaciones['Total pesos'], errors='coerce')
-operaciones['Caja Acum'] = pd.to_numeric(operaciones['Caja Acum'], errors='coerce')
+
+operaciones_usd = operaciones[operaciones['Moneda'] == 'USD'].copy()   
+operaciones_usd = operaciones_usd[operaciones_usd['Cliente'] != "Movimiento De Caja"].copy()    # Excluir movimientos de caja
+### Tablas de Clientes Mensual ###
+
+operaciones_usd_por_cliente = operaciones_usd.groupby(['Cliente', 'Moneda']).agg({
+    'Monto': ['count', lambda x: x.abs().sum()]
+}).reset_index()
+
+operaciones_usd_por_cliente.columns = ['Cliente', 'Moneda', 'Cantidad Operaciones', 'Monto operado en el mes']
+
+operaciones_usd_por_cliente.sort_values(by='Monto operado en el mes', ascending=False, inplace=True)
+operaciones_usd_por_cliente.reset_index(drop=True, inplace=True)
+operaciones_usd_por_cliente = operaciones_usd_por_cliente[operaciones_usd_por_cliente['Monto operado en el mes'] != 0]
+top_20_participacion_operaciones_usd_por_cliente = operaciones_usd_por_cliente.nlargest(20, 'Monto operado en el mes').copy()
+
+# Calculate total amount for percentage calculation
+total_monto = operaciones_usd_por_cliente['Monto operado en el mes'].sum()
+
+# Add percentage column to top 20
+top_20_participacion_operaciones_usd_por_cliente['Porcentaje'] = (top_20_participacion_operaciones_usd_por_cliente['Monto operado en el mes'] / total_monto * 100).round(2)
+
+# Calculate "Otros" row
+otros_monto = operaciones_usd_por_cliente.iloc[20:]['Monto operado en el mes'].sum()
+otros_cantidad = operaciones_usd_por_cliente.iloc[20:]['Cantidad Operaciones'].sum()
+otros_porcentaje = (otros_monto / total_monto * 100).round(2)
+
+# Create "Otros" row
+otros_row = pd.DataFrame({
+    'Cliente': ['Otros'],
+    'Moneda': ['USD'],
+    'Cantidad Operaciones': [otros_cantidad],
+    'Monto operado en el mes': [otros_monto],º
+    'Porcentaje': [otros_porcentaje]
+})
+
+# Concatenate top 20 with "Otros" row
+top_20_participacion_operaciones_usd_por_cliente = pd.concat([top_20_participacion_operaciones_usd_por_cliente, otros_row], ignore_index=True)
+
+### Tabla de operaciones por operador y dia ###
 
 operaciones_operador_por_dia = operaciones.groupby(['Fecha', 'Operador']).size().reset_index(name='Cantidad Operaciones')
 operador_operaciones_pivot = operaciones_operador_por_dia.pivot_table(
@@ -106,23 +204,33 @@ operador_operaciones_pivot = operaciones_operador_por_dia.pivot_table(
 )
 operador_operaciones_pivot['Total'] = operador_operaciones_pivot.sum(axis=1)
 sgto_matriz_operadores_dias = operador_operaciones_pivot.reset_index()
+# Filter out rows with empty or invalid dates
+sgto_matriz_operadores_dias = sgto_matriz_operadores_dias[sgto_matriz_operadores_dias['Fecha'].str.strip() != ''].copy()
 sgto_matriz_operadores_dias['Fecha'] = pd.to_datetime(sgto_matriz_operadores_dias['Fecha'], format='%d/%m/%Y')
 sgto_matriz_operadores_dias = sgto_matriz_operadores_dias.sort_values('Fecha')
 sgto_matriz_operadores_dias['Fecha'] = sgto_matriz_operadores_dias['Fecha'].dt.strftime('%d/%m/%Y')
 
-operaciones_usd = operaciones[(operaciones['Tipo'] == 'USD') & (operaciones['TC'].notna())].copy()   # Qué hacer con los casos donde TC es NaN??
+
+### Tabla de tipo de cambio y montos operados para operaciones en USD ###
+
+
 operaciones_usd.loc[:, 'Monto'] = operaciones_usd['Monto'].abs()
 operaciones_usd['MontoxTC'] = operaciones_usd['Monto'] * operaciones_usd['TC']
 
-tabla_tipo_de_cambio_por_dia = operaciones_usd.groupby('Fecha').agg({
-    'Monto': 'sum',
+tabla_monto_operado = operaciones_usd.groupby('Fecha').agg({
+    'Monto': 'sum'
+}).reset_index()
+
+tabla_tipo_de_cambio_por_dia = operaciones_usd[operaciones_usd['TC'] != 0].groupby('Fecha').agg({         # Qué hacer con los casos donde TC es NaN??
+    'Monto': 'sum',    
     'MontoxTC': 'sum'
 }).reset_index()
 
 tabla_tipo_de_cambio_por_dia['TC Prom'] = tabla_tipo_de_cambio_por_dia['MontoxTC'] / tabla_tipo_de_cambio_por_dia['Monto']
+tabla_tipo_de_cambio_por_dia = tabla_tipo_de_cambio_por_dia[['Fecha', 'TC Prom']]
 
 # Calculo de tipo de cambio maximo y minimo por dia
-sgto_montos_usd_tdc = operaciones_usd.groupby('Fecha').agg({
+sgto_montos_usd_tdc = operaciones_usd[operaciones_usd['TC'] != 0].groupby('Fecha').agg({
     'TC': ['min', 'max']
 }).reset_index()
 
@@ -134,6 +242,13 @@ tabla_tdc = tabla_tipo_de_cambio_por_dia[['Fecha', 'TC Prom']].merge(
     on='Fecha',
     how='left'
 )
+
+tabla_tdc = tabla_tdc.merge(
+    tabla_monto_operado,
+    on='Fecha',
+    how='left'
+)
+
 tabla_tdc['Fecha'] = pd.to_datetime(tabla_tdc['Fecha'], format='%d/%m/%Y').dt.strftime('%Y-%m-%d')
 
 #### Cálculo de métricas principales ###
@@ -166,6 +281,10 @@ metricas_df = pd.DataFrame([{
     'Monto USD hoy': monto_usd_hoy,
     'TdC hoy': tdc_hoy
 }])
+
+
+
+
 
 
 #### Control Caja ####
@@ -220,8 +339,8 @@ def standardize_date(date_str):
 df['Fecha'] = df['Fecha'].apply(standardize_date)
 
 # Convert 'Total Caja' and 'Ganancias' to numeric, removing dots used as thousands separators
-df['Total Caja'] = df['Total Caja'].str.replace('.', '').str.replace(',', '.').astype(int)
-df['Ganancias'] = df['Ganancias'].str.replace('.', '').str.replace(',', '.').astype(int)
+df['Total Caja'] = df['Total Caja'].str.replace('.', '', regex=False).str.replace(',', '.', regex=False).astype(int)
+df['Ganancias'] = df['Ganancias'].str.replace('.', '', regex=False).str.replace(',', '.', regex=False).astype(int)
 
 sheet= gc.open('Datos Financiera')
 seguimiento_worksheet = sheet.worksheet('Seguimiento')
@@ -246,13 +365,13 @@ df_tabla = df_tabla.drop(0)
 df_tabla = df_tabla.reset_index(drop=True)
 df_tabla.columns = ['CONCEPTO', '', 'HOY', 'ACUM MES', 'PROM x DIA', 'VAR MA', 'PROY MES', 'VAR PROY', 'Obj'] #Cambio nombre a columna duplicada
 df_tabla = df_tabla.drop(columns=[''])  # Drop the empty column
-df_tabla['HOY'] = df_tabla['HOY'].str.replace('.', '')
-df_tabla['ACUM MES'] = df_tabla['ACUM MES'].str.replace('.', '')
-df_tabla['PROM x DIA'] = df_tabla['PROM x DIA'].str.replace('.', '')
-df_tabla['VAR MA'] = df_tabla['VAR MA'].str.replace('%', '')
-df_tabla['PROY MES'] = df_tabla['PROY MES'].str.replace('.', '')
-df_tabla['VAR PROY'] = df_tabla['VAR PROY'].str.replace('%', '')
-df_tabla['Obj'] = df_tabla['Obj'].str.replace('.', '')
+df_tabla['HOY'] = df_tabla['HOY'].str.replace('.', '', regex=False)
+df_tabla['ACUM MES'] = df_tabla['ACUM MES'].str.replace('.', '', regex=False)
+df_tabla['PROM x DIA'] = df_tabla['PROM x DIA'].str.replace('.', '', regex=False)
+df_tabla['VAR MA'] = df_tabla['VAR MA'].str.replace('%', '', regex=False)
+df_tabla['PROY MES'] = df_tabla['PROY MES'].str.replace('.', '', regex=False)
+df_tabla['VAR PROY'] = df_tabla['VAR PROY'].str.replace('%', '', regex=False)
+df_tabla['Obj'] = df_tabla['Obj'].str.replace('.', '', regex=False)
 df_tabla['CONCEPTO'] = df_tabla['CONCEPTO'].str.strip() 
 # Convert numeric columns to integers
 numeric_columns = ['HOY', 'ACUM MES', 'PROM x DIA', 'PROY MES', 'Obj']
@@ -290,6 +409,8 @@ supabase_client.table('sgto_operaciones_operador_por_dia').delete().neq('id', 0)
 supabase_client.table('sgto_tabla_datos').delete().neq('id', 0).execute()
 supabase_client.table('sgto_historico_caja').delete().neq('id', 0).execute()
 supabase_client.table('sgto_tabla_tdc').delete().neq('id', 0).execute()
+supabase_client.table('sgto_operaciones_usd_por_cliente').delete().neq('id', 0).execute()
+supabase_client.table('sgto_top_20_participacion_operaciones_usd_por_cliente').delete().neq('id', 0).execute()
 
 insert_table_data('sgto_montos_usd_tdc', metricas_df.to_dict(orient='records'))
 insert_table_data('sgto_matriz_operadores_dias', sgto_matriz_operadores_dias.to_dict(orient='records'))
@@ -297,6 +418,8 @@ insert_table_data('sgto_operaciones_operador_por_dia', operaciones_operador_por_
 insert_table_data('sgto_tabla_datos', df_tabla.to_dict(orient='records'))
 insert_table_data('sgto_historico_caja', df.to_dict(orient='records'))
 insert_table_data('sgto_tabla_tdc', tabla_tdc.to_dict(orient='records'))
+insert_table_data('sgto_operaciones_usd_por_cliente', operaciones_usd_por_cliente.to_dict(orient='records'))
+insert_table_data('sgto_top_20_participacion_operaciones_usd_por_cliente', top_20_participacion_operaciones_usd_por_cliente.to_dict(orient='records'))
 update_log()
 
 print("Actualización completada.")

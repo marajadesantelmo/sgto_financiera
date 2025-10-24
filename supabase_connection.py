@@ -68,3 +68,4 @@ def insert_table_data(table_name, data):
             supabase_client.from_(table_name).insert(record).execute()
         except Exception as e:
             print(f"Error inserting record into {table_name}: {e}")
+

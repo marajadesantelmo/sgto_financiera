@@ -1,2 +1,4 @@
 tokens.py
 credenciales_gsheets.json
+update_datos*.py
+trash_bin/*

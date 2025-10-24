@@ -62,3 +62,21 @@ CREATE TABLE sgto_tabla_tdc (
     "TC_min" NUMERIC,
     "TC_max" NUMERIC
 );
+
+CREATE TABLE sgto_operaciones_usd_por_cliente (
+    id SERIAL PRIMARY KEY,
+    "Cliente" TEXT,
+    "Moneda" TEXT,
+    "Cantidad Operaciones" NUMERIC,
+    "Monto operado en el mes" NUMERIC
+);
+
+CREATE TABLE sgto_top_20_participacion_operaciones_usd_por_cliente (
+    id SERIAL PRIMARY KEY,
+    "Cliente" TEXT,
+    "Moneda" TEXT,
+    "Cantidad Operaciones" NUMERIC,
+    "Monto operado en el mes" NUMERIC,
+    "Porcentaje" NUMERIC
+);
+

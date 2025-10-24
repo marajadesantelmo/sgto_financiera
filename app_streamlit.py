@@ -1,6 +1,7 @@
 import streamlit as st
 from app_operaciones_usd import show_page_operaciones
 from app_sgto_caja import show_page_caja
+from app_analisis_clientes import show_page_analisis_clientes
 from supabase_connection import login_user, logout_user
 
 # Configuración de la página
@@ -51,6 +52,9 @@ else:
         },
         "Seguimiento Caja": {
             "icon": "💰",
+        },
+        "Análisis Clientes": {
+            "icon": "👥",
         },
     }
 
@@ -173,8 +177,10 @@ else:
 
     if selected_page == "Operaciones USD":
         show_page_operaciones()
-    else:
+    elif selected_page == "Seguimiento Caja":
         show_page_caja()
+    else:  # Análisis Clientes
+        show_page_analisis_clientes()
 
     st.markdown("<hr style='margin-top:3rem;'>", unsafe_allow_html=True)
     _, logout_col, _ = st.columns([1, 2, 1])
