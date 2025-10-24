@@ -143,7 +143,6 @@ else:
                     <div class="avatar">{user_initials}</div>
                     <div class="meta">
                         <span style="font-weight:600;">{user_email}</span>
-                        <span style="color:rgba(255,255,255,0.7);">Usuario autorizado</span>
                     </div>
                 </div>
             </div>
@@ -153,19 +152,54 @@ else:
 
     nav_container = st.sidebar.container()
     with nav_container:
-        option_labels = [f"{item['icon']}  {title}" for title, item in NAV_ITEMS.items()]
-        label_to_title = dict(zip(option_labels, NAV_ITEMS.keys()))
-        default_label = f"{NAV_ITEMS[st.session_state['selected_page']]['icon']}  {st.session_state['selected_page']}"
-
-        selected_label = st.radio(
-            "Seleccionar página",
-            option_labels,
-            index=option_labels.index(default_label),
-            label_visibility="collapsed",
-            key="nav_radio",
-        )
+        st.markdown('<div class="nav-wrapper">', unsafe_allow_html=True)
+        
+        for title, item in NAV_ITEMS.items():
+            is_selected = st.session_state['selected_page'] == title
+            button_class = "nav-button selected" if is_selected else "nav-button"
+            
+            button_html = f"""
+            <div class="{button_class}" onclick="selectPage('{title}')">
+                <span class="nav-icon">{item['icon']}</span>
+                <span class="nav-title">{title}</span>
+            </div>
+            """
+            
+            if st.button(f"{item['icon']}  {title}", key=f"nav_{title}", use_container_width=True):
+                st.session_state['selected_page'] = title
+                st.rerun()
 
         st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Add custom CSS for button styling
+        st.markdown("""
+        <style>
+        .nav-wrapper .stButton > button {
+            border: 1px solid rgba(255, 255, 255, 0.18) !important;
+            background: rgba(255, 255, 255, 0.06) !important;
+            border-radius: 12px !important;
+            padding: 0.75rem 1rem !important;
+            transition: all 0.3s ease !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+            margin-bottom: 8px !important;
+            color: #f5f7ff !important;
+            font-weight: 500 !important;
+        }
+        
+        .nav-wrapper .stButton > button:hover {
+            border-color: rgba(255, 255, 255, 0.35) !important;
+            background: rgba(255, 255, 255, 0.12) !important;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+            transform: translateY(-1px) !important;
+        }
+        
+        .nav-wrapper .stButton > button:focus {
+            border: 1px solid #7aa5ff !important;
+            background: rgba(122, 165, 255, 0.16) !important;
+            box-shadow: 0 0 0 2px rgba(122, 165, 255, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
 
     selected_page = label_to_title[selected_label]
     st.session_state['selected_page'] = selected_page
