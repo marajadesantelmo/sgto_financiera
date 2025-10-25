@@ -144,9 +144,9 @@ data15['Moneda'] = 'Euros'
 data15['Caja'] = 'Reconquista CABA'
 
 operaciones = pd.concat([data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14, data15], ignore_index=True)
-operaciones = operaciones[operaciones['Cliente'] != 'APERTURA DE CAJA OCTUBRE']
-operaciones = operaciones[operaciones['Cliente'] != "Movimiento De Caja"].copy()    # Excluir movimientos de caja
 operaciones['Cliente'] = operaciones['Cliente'].str.strip().str.title()
+operaciones = operaciones[operaciones['Cliente'] != 'Apertura De Caja Octubre']
+operaciones = operaciones[operaciones['Cliente'] != "Movimiento De Caja"].copy()    # Excluir movimientos de caja
 operaciones.dropna(subset=['Fecha'], inplace=True)
 operaciones.fillna("0", inplace=True)
 numeric_columns = ['Monto', 'TC']
