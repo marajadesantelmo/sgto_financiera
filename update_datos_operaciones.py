@@ -1,7 +1,7 @@
 import gspread
 import pandas as pd
 import os
-from tokens import url_supabase, key_supabase
+from tokens import url_supabase, key_supabase, sheet_operaciones_url, sheet_control_caja_url
 from supabase import create_client, Client
 supabase_client = create_client(url_supabase, key_supabase)
 from datetime import datetime
@@ -31,7 +31,7 @@ if os.path.exists('\\\\dc01\\Usuarios\\PowerBI\\flastra\\Documents\\sgto_financi
 elif os.path.exists('credenciales_gsheets.json'):
     gc = gspread.service_account(filename='credenciales_gsheets.json')
 #Operaciones
-sheet_url = 'https://docs.google.com/spreadsheets/d/1luAwlud_R8-GDIYZRiQuuSIOnF5RuPATZdqdIDm-0j8'
+sheet_url = sheet_operaciones_url
 sh = gc.open_by_url(sheet_url)
 worksheet = sh.worksheet('Operaciones Octubre 2025')
 
@@ -145,6 +145,7 @@ data15['Caja'] = 'Reconquista CABA'
 
 operaciones = pd.concat([data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14, data15], ignore_index=True)
 operaciones = operaciones[operaciones['Cliente'] != 'APERTURA DE CAJA OCTUBRE']
+operaciones = operaciones[operaciones['Cliente'] != "Movimiento De Caja"].copy()    # Excluir movimientos de caja
 operaciones['Cliente'] = operaciones['Cliente'].str.strip().str.title()
 operaciones.dropna(subset=['Fecha'], inplace=True)
 operaciones.fillna("0", inplace=True)
@@ -156,7 +157,7 @@ operaciones['Monto'] = pd.to_numeric(operaciones['Monto'], errors='coerce')
 operaciones['TC'] = pd.to_numeric(operaciones['TC'], errors='coerce')
 
 operaciones_usd = operaciones[operaciones['Moneda'] == 'USD'].copy()   
-operaciones_usd = operaciones_usd[operaciones_usd['Cliente'] != "Movimiento De Caja"].copy()    # Excluir movimientos de caja
+
 ### Tablas de Clientes Mensual ###
 
 operaciones_usd_por_cliente = operaciones_usd.groupby(['Cliente', 'Moneda']).agg({
@@ -186,7 +187,7 @@ otros_row = pd.DataFrame({
     'Cliente': ['Otros'],
     'Moneda': ['USD'],
     'Cantidad Operaciones': [otros_cantidad],
-    'Monto operado en el mes': [otros_monto],º
+    'Monto operado en el mes': [otros_monto],
     'Porcentaje': [otros_porcentaje]
 })
 
@@ -205,6 +206,7 @@ operador_operaciones_pivot = operaciones_operador_por_dia.pivot_table(
 operador_operaciones_pivot['Total'] = operador_operaciones_pivot.sum(axis=1)
 sgto_matriz_operadores_dias = operador_operaciones_pivot.reset_index()
 # Filter out rows with empty or invalid dates
+sgto_matriz_operadores_dias.drop(columns=['', '0'], inplace=True)
 sgto_matriz_operadores_dias = sgto_matriz_operadores_dias[sgto_matriz_operadores_dias['Fecha'].str.strip() != ''].copy()
 sgto_matriz_operadores_dias['Fecha'] = pd.to_datetime(sgto_matriz_operadores_dias['Fecha'], format='%d/%m/%Y')
 sgto_matriz_operadores_dias = sgto_matriz_operadores_dias.sort_values('Fecha')
@@ -230,7 +232,7 @@ tabla_tipo_de_cambio_por_dia['TC Prom'] = tabla_tipo_de_cambio_por_dia['MontoxTC
 tabla_tipo_de_cambio_por_dia = tabla_tipo_de_cambio_por_dia[['Fecha', 'TC Prom']]
 
 # Calculo de tipo de cambio maximo y minimo por dia
-sgto_montos_usd_tdc = operaciones_usd[operaciones_usd['TC'] != 0].groupby('Fecha').agg({
+sgto_montos_usd_tdc = operaciones_usd[operaciones_usd['TC'] > 1000].groupby('Fecha').agg({
     'TC': ['min', 'max']
 }).reset_index()
 
@@ -288,7 +290,7 @@ metricas_df = pd.DataFrame([{
 
 
 #### Control Caja ####
-sheet_url = 'https://docs.google.com/spreadsheets/d/1quiYMjvkoE6N9pVxEnPithfOfz-QdY8jEZkR3qC0xzg'
+sheet_url = sheet_control_caja_url
 sh = gc.open_by_url(sheet_url)
 worksheet = sh.worksheet('Control caja')
 fechas_caja = worksheet.get('AP2:BV2')

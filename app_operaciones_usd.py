@@ -155,7 +155,7 @@ def show_page_operaciones():
             height=600,
             xaxis=dict(tickformat='%d/%m/%Y', title=''),
             showlegend=False,
-            yaxis=dict(range=[1300, 1600], title='')
+            yaxis=dict(range=[1300, 1800], title='')
         )
 
         st.plotly_chart(fig_tdc, use_container_width=True)
