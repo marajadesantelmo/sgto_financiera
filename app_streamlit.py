@@ -16,49 +16,62 @@ st.set_page_config(
 # Initialize cookie manager
 cookie_manager = stx.CookieManager(key='sgto_financiera_cookies')
 
+# Cookie configuration
+COOKIE_EMAIL_KEY = 'saved_email'
+COOKIE_PASSWORD_KEY = 'saved_password'
+COOKIE_EXPIRES_AT = datetime.utcnow() + timedelta(days=3650)  # ~10 years
+
 # Inicialización de estado de sesión
 if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
 if 'user' not in st.session_state:
     st.session_state['user'] = None
-if 'cookies_ready' not in st.session_state:
-    st.session_state['cookies_ready'] = False
+if 'auto_login_attempted' not in st.session_state:
+    st.session_state['auto_login_attempted'] = False
 
-# Wait for cookies to be ready and try auto-login
-if not st.session_state['cookies_ready']:
-    all_cookies = cookie_manager.get_all()
-    if all_cookies is not None and len(all_cookies) >= 0:
-        st.session_state['cookies_ready'] = True
-        
-        # Try auto-login if not already authenticated
-        if not st.session_state['authenticated']:
-            saved_email = all_cookies.get('saved_email')
-            saved_password = all_cookies.get('saved_password')
-            
-            if saved_email and saved_password:
-                try:
-                    user = login_user(saved_email, saved_password)
-                    if user:
-                        st.session_state['authenticated'] = True
-                        st.session_state['user'] = user
-                        st.rerun()
-                except Exception as e:
-                    # If auto-login fails, clear invalid cookies
-                    try:
-                        cookie_manager.delete('saved_email', key='auto_delete_email')
-                        cookie_manager.delete('saved_password', key='auto_delete_password')
-                    except:
-                        pass
+# Retrieve cookies every run
+raw_cookies = cookie_manager.get_all()
+cookies_ready = raw_cookies is not None
+cookies = raw_cookies or {}
+
+# Auto-login using stored credentials once cookies are ready
+if (
+    cookies_ready
+    and not st.session_state['authenticated']
+    and not st.session_state['auto_login_attempted']
+):
+    saved_email = cookies.get(COOKIE_EMAIL_KEY)
+    saved_password = cookies.get(COOKIE_PASSWORD_KEY)
+
+    if saved_email and saved_password:
+        try:
+            user = login_user(saved_email, saved_password)
+            if user:
+                st.session_state['authenticated'] = True
+                st.session_state['user'] = user
+                st.session_state['auto_login_attempted'] = True
+                st.rerun()
+            else:
+                st.session_state['auto_login_attempted'] = True
+        except Exception:
+            st.session_state['auto_login_attempted'] = True
+            try:
+                cookie_manager.delete(COOKIE_EMAIL_KEY, key='auto_delete_email')
+                cookie_manager.delete(COOKIE_PASSWORD_KEY, key='auto_delete_password')
+            except Exception:
+                pass
+    else:
+        st.session_state['auto_login_attempted'] = True
 
 def handle_logout():
     st.session_state['authenticated'] = False
     st.session_state['user'] = None
-    st.session_state['cookies_ready'] = False
+    st.session_state['auto_login_attempted'] = False
     logout_user()
     # Clear cookies on logout
     try:
-        cookie_manager.delete('saved_email', key='logout_delete_email')
-        cookie_manager.delete('saved_password', key='logout_delete_password')
+        cookie_manager.delete(COOKIE_EMAIL_KEY, key='logout_delete_email')
+        cookie_manager.delete(COOKIE_PASSWORD_KEY, key='logout_delete_password')
     except:
         pass
     st.rerun()
@@ -83,11 +96,19 @@ if not st.session_state['authenticated']:
                 # Save credentials in cookies if "Remember me" is checked
                 if remember_me:
                     try:
-                        # Set cookies without expiration (permanent) with unique keys
-                        cookie_manager.set('saved_email', email, key='login_set_email')
-                        cookie_manager.set('saved_password', password, key='login_set_password')
-                    except Exception as e:
-                        # Cookie saving is not critical, so just log it
+                        cookie_manager.set(
+                            COOKIE_EMAIL_KEY,
+                            email,
+                            expires_at=COOKIE_EXPIRES_AT,
+                            key='login_set_email',
+                        )
+                        cookie_manager.set(
+                            COOKIE_PASSWORD_KEY,
+                            password,
+                            expires_at=COOKIE_EXPIRES_AT,
+                            key='login_set_password',
+                        )
+                    except Exception:
                         pass
                 
                 st.success('Login exitoso!')

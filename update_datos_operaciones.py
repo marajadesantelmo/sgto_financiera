@@ -217,12 +217,13 @@ sgto_matriz_operadores_dias['Fecha'] = sgto_matriz_operadores_dias['Fecha'].dt.s
 
 operaciones_usd.loc[:, 'Monto'] = operaciones_usd['Monto'].abs()
 operaciones_usd['MontoxTC'] = operaciones_usd['Monto'] * operaciones_usd['TC']
-
 tabla_monto_operado = operaciones_usd.groupby('Fecha').agg({
     'Monto': 'sum'
 }).reset_index()
 
-tabla_tipo_de_cambio_por_dia = operaciones_usd[operaciones_usd['TC'] > 1000].groupby('Fecha').agg({         # Qué hacer con los casos donde TC es NaN??
+operaciones_usd_tdc_clean = operaciones_usd[operaciones_usd['TC'] > 1000].copy()   # Filtrar operaciones con TC válido # Qué hacer con los casos donde TC es NaN??
+
+tabla_tipo_de_cambio_por_dia = operaciones_usd_tdc_clean.groupby('Fecha').agg({         
     'Monto': 'sum',    
     'MontoxTC': 'sum'
 }).reset_index()
@@ -231,7 +232,7 @@ tabla_tipo_de_cambio_por_dia['TC Prom'] = tabla_tipo_de_cambio_por_dia['MontoxTC
 tabla_tipo_de_cambio_por_dia = tabla_tipo_de_cambio_por_dia[['Fecha', 'TC Prom']]
 
 # Calculo de tipo de cambio maximo y minimo por dia
-sgto_montos_usd_tdc = operaciones_usd[operaciones_usd['TC'] > 1000].groupby('Fecha').agg({
+sgto_montos_usd_tdc = operaciones_usd_tdc_clean.groupby('Fecha').agg({
     'TC': ['min', 'max']
 }).reset_index()
 
@@ -254,27 +255,31 @@ tabla_tdc['Fecha'] = pd.to_datetime(tabla_tdc['Fecha'], format='%d/%m/%Y').dt.st
 
 #### Cálculo de métricas principales ###
 
+# Get yesterday's date in YYYY-MM-DD format to match tabla_tdc
 ayer = pd.to_datetime("today") - pd.Timedelta(days=1)
-ayer = ayer.strftime('%d/%m/%Y')
+ayer_formatted = ayer.strftime('%Y-%m-%d')
 
-if ayer in operaciones_usd['Fecha'].values:
-    operaciones_usd_ayer = operaciones_usd[operaciones_usd['Fecha'] == ayer]
-    monto_usd_ayer = operaciones_usd_ayer['Monto'].sum()
-    montoxTC_usd_ayer = operaciones_usd_ayer['MontoxTC'].sum()
-    tdc_ayer = montoxTC_usd_ayer / monto_usd_ayer
-else: 
+# Get today's date in YYYY-MM-DD format to match tabla_tdc
+hoy = pd.to_datetime("today")
+hoy_formatted = hoy.strftime('%Y-%m-%d')
+
+# Get metrics from tabla_tdc for yesterday
+if ayer_formatted in tabla_tdc['Fecha'].values:
+    ayer_data = tabla_tdc[tabla_tdc['Fecha'] == ayer_formatted].iloc[0]
+    monto_usd_ayer = ayer_data['Monto']
+    tdc_ayer = ayer_data['TC Prom']
+else:
     monto_usd_ayer = 0
     tdc_ayer = 0
 
-hoy = pd.to_datetime("today").strftime('%d/%m/%Y')
-if hoy in sgto_matriz_operadores_dias['Fecha'].values:
-    operaciones_usd_hoy = operaciones_usd[operaciones_usd['Fecha'] == hoy]
-    monto_usd_hoy = operaciones_usd_hoy['Monto'].sum()
-    montoxTC_usd_hoy = operaciones_usd_hoy['MontoxTC'].sum()
-    tdc_hoy = montoxTC_usd_hoy / monto_usd_hoy
-else: 
+# Get metrics from tabla_tdc for today
+if hoy_formatted in tabla_tdc['Fecha'].values:
+    hoy_data = tabla_tdc[tabla_tdc['Fecha'] == hoy_formatted].iloc[0]
+    monto_usd_hoy = hoy_data['Monto']
+    tdc_hoy = hoy_data['TC Prom']
+else:
     monto_usd_hoy = 0
-    tdc_hoy = 0    
+    tdc_hoy = 0
 
 metricas_df = pd.DataFrame([{
     'Monto USD ayer': monto_usd_ayer,
