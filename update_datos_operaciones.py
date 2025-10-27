@@ -408,24 +408,57 @@ def update_log():
     supabase_client.table('sgto_log_entry').delete().neq('id', 0).execute()
     supabase_client.from_("sgto_log_entry").insert(log_entry).execute()
 
+try:
+    supabase_client.table('sgto_montos_usd_tdc').delete().neq('id', 0).execute()
+    insert_table_data('sgto_montos_usd_tdc', metricas_df.to_dict(orient='records'))
+except Exception as e:
+    print(f"Error updating sgto_montos_usd_tdc: {e}")
 
-supabase_client.table('sgto_montos_usd_tdc').delete().neq('id', 0).execute()
-supabase_client.table('sgto_matriz_operadores_dias').delete().neq('id', 0).execute()
-supabase_client.table('sgto_operaciones_operador_por_dia').delete().neq('id', 0).execute()
-supabase_client.table('sgto_tabla_datos').delete().neq('id', 0).execute()
-supabase_client.table('sgto_historico_caja').delete().neq('id', 0).execute()
-supabase_client.table('sgto_tabla_tdc').delete().neq('id', 0).execute()
-supabase_client.table('sgto_operaciones_usd_por_cliente').delete().neq('id', 0).execute()
-supabase_client.table('sgto_top_20_participacion_operaciones_usd_por_cliente').delete().neq('id', 0).execute()
+try:
+    supabase_client.table('sgto_matriz_operadores_dias').delete().neq('id', 0).execute()
+    insert_table_data('sgto_matriz_operadores_dias', sgto_matriz_operadores_dias.to_dict(orient='records'))
+except Exception as e:
+    print(f"Error updating sgto_matriz_operadores_dias: {e}")
 
-insert_table_data('sgto_montos_usd_tdc', metricas_df.to_dict(orient='records'))
-insert_table_data('sgto_matriz_operadores_dias', sgto_matriz_operadores_dias.to_dict(orient='records'))
-insert_table_data('sgto_operaciones_operador_por_dia', operaciones_operador_por_dia.to_dict(orient='records'))
-insert_table_data('sgto_tabla_datos', df_tabla.to_dict(orient='records'))
-insert_table_data('sgto_historico_caja', df.to_dict(orient='records'))
-insert_table_data('sgto_tabla_tdc', tabla_tdc.to_dict(orient='records'))
-insert_table_data('sgto_operaciones_usd_por_cliente', operaciones_usd_por_cliente.to_dict(orient='records'))
-insert_table_data('sgto_top_20_participacion_operaciones_usd_por_cliente', top_20_participacion_operaciones_usd_por_cliente.to_dict(orient='records'))
+try:
+    supabase_client.table('sgto_operaciones_operador_por_dia').delete().neq('id', 0).execute()
+    insert_table_data('sgto_operaciones_operador_por_dia', operaciones_operador_por_dia.to_dict(orient='records'))
+except Exception as e:
+    print(f"Error updating sgto_operaciones_operador_por_dia: {e}")
+
+try:
+    supabase_client.table('sgto_tabla_datos').delete().neq('id', 0).execute()
+    insert_table_data('sgto_tabla_datos', df_tabla.to_dict(orient='records'))
+except Exception as e:
+    print(f"Error updating sgto_tabla_datos: {e}")
+
+try:
+    supabase_client.table('sgto_historico_caja').delete().neq('id', 0).execute()
+    insert_table_data('sgto_historico_caja', df.to_dict(orient='records'))
+except Exception as e:
+    print(f"Error updating sgto_historico_caja: {e}")
+
+try:
+    supabase_client.table('sgto_tabla_tdc').delete().neq('id', 0).execute()
+    insert_table_data('sgto_tabla_tdc', tabla_tdc.to_dict(orient='records'))
+except Exception as e:
+    print(f"Error updating sgto_tabla_tdc: {e}")
+
+try:
+    supabase_client.table('sgto_operaciones_usd_por_cliente').delete().neq('id', 0).execute()
+    insert_table_data('sgto_operaciones_usd_por_cliente', operaciones_usd_por_cliente.to_dict(orient='records'))
+except Exception as e:
+    print(f"Error updating sgto_operaciones_usd_por_cliente: {e}")
+
+try:
+    supabase_client.table('sgto_top_20_participacion_operaciones_usd_por_cliente').delete().neq('id', 0).execute()
+    insert_table_data('sgto_top_20_participacion_operaciones_usd_por_cliente', top_20_participacion_operaciones_usd_por_cliente.to_dict(orient='records'))
+except Exception as e:
+    print(f"Error updating sgto_top_20_participacion_operaciones_usd_por_cliente: {e}")
+
+
+
+
 update_log()
 
 print("Actualización completada.")

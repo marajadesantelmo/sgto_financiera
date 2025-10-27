@@ -78,6 +78,7 @@ def handle_logout():
 
 # Página de login
 if not st.session_state['authenticated']:
+    st.warning("🚧 App en desarrollo 🚧 Todavia no se encuentra disponible. Ingrese para testear la interfaz de usuario.")
     st.title("🔐 Acceso al Sistema")
     
     with st.form("login_form"):
