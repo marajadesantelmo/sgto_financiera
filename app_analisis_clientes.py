@@ -35,15 +35,6 @@ def show_page_analisis_clientes():
 
     st.title("📊 Análisis de Clientes")
 
-    # Check if data is available
-    if sgto_operaciones_usd_por_cliente is None or sgto_operaciones_usd_por_cliente.empty:
-        st.warning("No hay datos de operaciones por cliente disponibles")
-        return
-
-    if top20 is None or top20.empty:
-        st.warning("No hay datos de top 20 clientes disponibles")
-        return
-
     # Layout with two columns
     col1, col2 = st.columns([2, 1])
 
