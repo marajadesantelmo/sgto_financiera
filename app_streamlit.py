@@ -53,8 +53,11 @@ if (
         except Exception:
             st.session_state['auto_login_attempted'] = True
             try:
-                cookies.delete(COOKIE_EMAIL_KEY)
-                cookies.delete(COOKIE_PASSWORD_KEY)
+                for key in (COOKIE_EMAIL_KEY, COOKIE_PASSWORD_KEY):
+                    try:
+                        del cookies[key]
+                    except KeyError:
+                        continue
                 cookies.save()
             except Exception:
                 pass
@@ -68,8 +71,11 @@ def handle_logout():
     logout_user()
     # Clear cookies on logout
     try:
-        cookies.delete(COOKIE_EMAIL_KEY)
-        cookies.delete(COOKIE_PASSWORD_KEY)
+        for key in (COOKIE_EMAIL_KEY, COOKIE_PASSWORD_KEY):
+            try:
+                del cookies[key]
+            except KeyError:
+                continue
         cookies.save()
     except Exception:
         pass
@@ -103,8 +109,11 @@ if not st.session_state['authenticated']:
                         pass
                 else:
                     try:
-                        cookies.delete(COOKIE_EMAIL_KEY)
-                        cookies.delete(COOKIE_PASSWORD_KEY)
+                        for key in (COOKIE_EMAIL_KEY, COOKIE_PASSWORD_KEY):
+                            try:
+                                del cookies[key]
+                            except KeyError:
+                                continue
                         cookies.save()
                     except Exception:
                         pass
