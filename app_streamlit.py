@@ -47,7 +47,7 @@ if (
                 st.session_state['authenticated'] = True
                 st.session_state['user'] = user
                 st.session_state['auto_login_attempted'] = True
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.session_state['auto_login_attempted'] = True
         except Exception:
@@ -73,7 +73,7 @@ def handle_logout():
         cookies.save()
     except Exception:
         pass
-    st.experimental_rerun()
+    st.rerun()
 
 # Página de login
 if not st.session_state['authenticated']:
@@ -98,6 +98,13 @@ if not st.session_state['authenticated']:
                     try:
                         cookies[COOKIE_EMAIL_KEY] = email
                         cookies[COOKIE_PASSWORD_KEY] = password
+                        cookies.save()
+                    except Exception:
+                        pass
+                else:
+                    try:
+                        cookies.delete(COOKIE_EMAIL_KEY)
+                        cookies.delete(COOKIE_PASSWORD_KEY)
                         cookies.save()
                     except Exception:
                         pass
