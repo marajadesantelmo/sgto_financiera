@@ -1,10 +1,10 @@
+import os
 import streamlit as st
-import extra_streamlit_components as stx
+from streamlit_cookies_manager import EncryptedCookieManager
 from app_operaciones_usd import show_page_operaciones
 from app_sgto_caja import show_page_caja
 from app_analisis_clientes import show_page_analisis_clientes
 from supabase_connection import login_user, logout_user
-from datetime import datetime, timedelta
 
 # Configuración de la página
 st.set_page_config(
@@ -13,13 +13,16 @@ st.set_page_config(
     layout="wide"
 )
 
-# Initialize cookie manager
-cookie_manager = stx.CookieManager(key='sgto_financiera_cookies')
+# Initialize encrypted cookie manager
+COOKIE_PREFIX = "sgto_fin_"
+COOKIE_EMAIL_KEY = "saved_email"
+COOKIE_PASSWORD_KEY = "saved_password"
+COOKIE_SECRET = os.getenv("COOKIE_SECRET", "default_sgto_secret")
 
-# Cookie configuration
-COOKIE_EMAIL_KEY = 'saved_email'
-COOKIE_PASSWORD_KEY = 'saved_password'
-COOKIE_EXPIRES_AT = datetime.utcnow() + timedelta(days=3650)  # ~10 years
+cookies = EncryptedCookieManager(prefix=COOKIE_PREFIX, password=COOKIE_SECRET)
+
+if not cookies.ready():
+    st.stop()
 
 # Inicialización de estado de sesión
 if 'authenticated' not in st.session_state:
@@ -29,15 +32,9 @@ if 'user' not in st.session_state:
 if 'auto_login_attempted' not in st.session_state:
     st.session_state['auto_login_attempted'] = False
 
-# Retrieve cookies every run
-raw_cookies = cookie_manager.get_all()
-cookies_ready = raw_cookies is not None
-cookies = raw_cookies or {}
-
-# Auto-login using stored credentials once cookies are ready
+# Attempt auto-login once per session run
 if (
-    cookies_ready
-    and not st.session_state['authenticated']
+    not st.session_state['authenticated']
     and not st.session_state['auto_login_attempted']
 ):
     saved_email = cookies.get(COOKIE_EMAIL_KEY)
@@ -50,14 +47,15 @@ if (
                 st.session_state['authenticated'] = True
                 st.session_state['user'] = user
                 st.session_state['auto_login_attempted'] = True
-                st.rerun()
+                st.experimental_rerun()
             else:
                 st.session_state['auto_login_attempted'] = True
         except Exception:
             st.session_state['auto_login_attempted'] = True
             try:
-                cookie_manager.delete(COOKIE_EMAIL_KEY, key='auto_delete_email')
-                cookie_manager.delete(COOKIE_PASSWORD_KEY, key='auto_delete_password')
+                cookies.delete(COOKIE_EMAIL_KEY)
+                cookies.delete(COOKIE_PASSWORD_KEY)
+                cookies.save()
             except Exception:
                 pass
     else:
@@ -70,11 +68,12 @@ def handle_logout():
     logout_user()
     # Clear cookies on logout
     try:
-        cookie_manager.delete(COOKIE_EMAIL_KEY, key='logout_delete_email')
-        cookie_manager.delete(COOKIE_PASSWORD_KEY, key='logout_delete_password')
-    except:
+        cookies.delete(COOKIE_EMAIL_KEY)
+        cookies.delete(COOKIE_PASSWORD_KEY)
+        cookies.save()
+    except Exception:
         pass
-    st.rerun()
+    st.experimental_rerun()
 
 # Página de login
 if not st.session_state['authenticated']:
@@ -97,18 +96,9 @@ if not st.session_state['authenticated']:
                 # Save credentials in cookies if "Remember me" is checked
                 if remember_me:
                     try:
-                        cookie_manager.set(
-                            COOKIE_EMAIL_KEY,
-                            email,
-                            expires_at=COOKIE_EXPIRES_AT,
-                            key='login_set_email',
-                        )
-                        cookie_manager.set(
-                            COOKIE_PASSWORD_KEY,
-                            password,
-                            expires_at=COOKIE_EXPIRES_AT,
-                            key='login_set_password',
-                        )
+                        cookies[COOKIE_EMAIL_KEY] = email
+                        cookies[COOKIE_PASSWORD_KEY] = password
+                        cookies.save()
                     except Exception:
                         pass
                 
