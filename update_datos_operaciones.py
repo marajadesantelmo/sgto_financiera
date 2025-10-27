@@ -34,114 +34,51 @@ elif os.path.exists('credenciales_gsheets.json'):
 sheet_url = sheet_operaciones_url
 sh = gc.open_by_url(sheet_url)
 worksheet = sh.worksheet('Operaciones Octubre 2025')
+# Leer todo el rango una sola vez y procesar por posición de columna
+all_rows = worksheet.get('A4:AY3961')  # único request
 
-#Datos generales
-columns1 = ['Fecha', 'Operador', 'Cliente']
-data_range1 = worksheet.get('A4:C3961')
-data1 = pd.DataFrame(data_range1, columns=columns1)
+# Asegurar que todas las filas tengan la misma longitud (hasta AY -> 51 columnas: 0..50)
+TARGET_COLS = 51
+padded = [row + [''] * (TARGET_COLS - len(row)) if len(row) < TARGET_COLS else row[:TARGET_COLS] for row in all_rows]
 
-#Datos de monto, moneda, caja y tc
-columns_usd = ['Monto', 'TC']
-columns_pesos = ['Monto']
+# DataFrame con columnas por índice para seleccionar por posición
+df_all = pd.DataFrame(padded, columns=list(range(TARGET_COLS)))
 
-data_range2 = worksheet.get('F4:G3961')
-data2 = pd.DataFrame(data_range2, columns=columns_usd)
+# Base general: Fecha(0), Operador(1), Cliente(2)
+base = df_all[[0, 1, 2]].copy()
+base.columns = ['Fecha', 'Operador', 'Cliente']
 
-data2 = pd.concat([data1, data2], axis=1)
-data2 = data2.dropna(subset=['Monto'])
-data2['Moneda'] = 'USD'
-data2['Caja'] = 'Salta'
+def make_single(col_idx, moneda, caja):
+    df = pd.concat([base, df_all[[col_idx]].copy()], axis=1)
+    df.columns = ['Fecha', 'Operador', 'Cliente', 'Monto']
+    df = df.replace('', pd.NA).dropna(subset=['Monto']).copy()
+    df['Moneda'] = moneda
+    df['Caja'] = caja
+    return df
 
-data_range3 = worksheet.get('K4:K3961')
-data3 = pd.DataFrame(data_range3, columns=columns_pesos)
-data3 = pd.concat([data1, data3], axis=1)
-data3 = data3.dropna(subset=['Monto'])
-data3['Moneda'] = 'Pesos'
-data3['Caja'] = 'Salta'
+def make_pair(col_idx_monto, col_idx_tc, moneda, caja):
+    df = pd.concat([base, df_all[[col_idx_monto, col_idx_tc]].copy()], axis=1)
+    df.columns = ['Fecha', 'Operador', 'Cliente', 'Monto', 'TC']
+    df = df.replace('', pd.NA).dropna(subset=['Monto']).copy()
+    df['Moneda'] = moneda
+    df['Caja'] = caja
+    return df
 
-data_range4 = worksheet.get('N4:N3961')
-data4 = pd.DataFrame(data_range4, columns=columns_pesos)
-data4 = pd.concat([data1, data4], axis=1)
-data4 = data4.dropna(subset=['Monto'])
-data4['Moneda'] = 'Transferencia'
-data4['Caja'] = 'Salta'
-
-data_range5 = worksheet.get('Q4:R3961')
-data5 = pd.DataFrame(data_range5, columns=columns_usd)
-data5 = pd.concat([data1, data5], axis=1)
-data5 = data5.dropna(subset=['Monto'])
-data5['Moneda'] = 'USD'
-data5['Caja'] = 'Office Park'
-
-data_range6 = worksheet.get('V4:V3961')
-data6 = pd.DataFrame(data_range6, columns=columns_pesos)
-data6 = pd.concat([data1, data6], axis=1)
-data6 = data6.dropna(subset=['Monto'])
-data6['Moneda'] = 'Pesos'
-data6['Caja'] = 'Office Park'
-
-data_range7 = worksheet.get('Y4:Y3961')
-data7 = pd.DataFrame(data_range7, columns=columns_pesos)
-data7 = pd.concat([data1, data7], axis=1)
-data7 = data7.dropna(subset=['Monto'])
-data7['Moneda'] = 'Transferencia'
-data7['Caja'] = 'Office Park'
-
-data_range8 = worksheet.get('AB4:AB3961')
-data8 = pd.DataFrame(data_range8, columns=columns_pesos)
-data8 = pd.concat([data1, data8], axis=1)
-data8 = data8.dropna(subset=['Monto'])
-data8['Moneda'] = 'Euros'
-data8['Caja'] = 'Office Park'
-
-data_range9 = worksheet.get('AE4:AE3961')
-data9 = pd.DataFrame(data_range9, columns=columns_pesos)
-data9 = pd.concat([data1, data9], axis=1)
-data9 = data9.dropna(subset=['Monto'])
-data9['Moneda'] = 'Euros'
-data9['Caja'] = 'Salta'
-
-data_range10 = worksheet.get('AH4:AH3961')
-data10 = pd.DataFrame(data_range10, columns=columns_pesos)
-data10 = pd.concat([data1, data10], axis=1)
-data10 = data10.dropna(subset=['Monto'])
-data10['Moneda'] = 'USDT'
-data10['Caja'] = 'Salta'
-
-data_range11 = worksheet.get('AK4:AK3961')
-data11 = pd.DataFrame(data_range11, columns=columns_pesos)
-data11 = pd.concat([data1, data11], axis=1)
-data11 = data11.dropna(subset=['Monto'])
-data11['Moneda'] = 'USD'
-data11['Caja'] = 'Mindful'
-
-data_range12 = worksheet.get('AN4:AO3961')
-data12 = pd.DataFrame(data_range12, columns=columns_usd)
-data12 = pd.concat([data1, data12], axis=1)
-data12 = data12.dropna(subset=['Monto'])
-data12['Moneda'] = 'USD'
-data12['Caja'] = 'Reconquista CABA'
-
-data_range13 = worksheet.get('AS4:AS3961')
-data13 = pd.DataFrame(data_range13, columns=columns_pesos)
-data13 = pd.concat([data1, data13], axis=1)
-data13 = data13.dropna(subset=['Monto'])
-data13['Moneda'] = 'Pesos'
-data13['Caja'] = 'Reconquista CABA'
-
-data_range14 = worksheet.get('AV4:AV3961')
-data14 = pd.DataFrame(data_range14, columns=columns_pesos)
-data14 = pd.concat([data1, data14], axis=1)
-data14 = data14.dropna(subset=['Monto'])
-data14['Moneda'] = 'Transferencia'
-data14['Caja'] = 'Reconquista CABA'
-
-data_range15 = worksheet.get('AY4:AY3961')
-data15 = pd.DataFrame(data_range15, columns=columns_pesos)
-data15 = pd.concat([data1, data15], axis=1)
-data15 = data15.dropna(subset=['Monto'])
-data15['Moneda'] = 'Euros'
-data15['Caja'] = 'Reconquista CABA'
+# Construir data2..data15 usando las posiciones originales
+data2  = make_pair(5, 6,   'USD',          'Salta')              # F:G
+data3  = make_single(10,    'Pesos',        'Salta')             # K
+data4  = make_single(13,    'Transferencia','Salta')             # N
+data5  = make_pair(16, 17,  'USD',          'Office Park')       # Q:R
+data6  = make_single(21,    'Pesos',        'Office Park')       # V
+data7  = make_single(24,    'Pesos',        'Office Park')       # Y
+data8  = make_single(27,    'Euros',        'Office Park')       # AB
+data9  = make_single(30,    'Euros',        'Salta')             # AE
+data10 = make_single(33,    'USDT',         'Salta')             # AH
+data11 = make_single(36,    'USD',          'Mindful')           # AK
+data12 = make_pair(39, 40,  'USD',          'Reconquista CABA')   # AN:AO
+data13 = make_single(44,    'Pesos',        'Reconquista CABA')   # AS
+data14 = make_single(47,    'Transferencia','Reconquista CABA')   # AV
+data15 = make_single(50,    'Euros',        'Reconquista CABA')   # AY
 
 operaciones = pd.concat([data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14, data15], ignore_index=True)
 operaciones['Cliente'] = operaciones['Cliente'].str.strip().str.title()
@@ -206,7 +143,7 @@ operador_operaciones_pivot = operaciones_operador_por_dia.pivot_table(
 operador_operaciones_pivot['Total'] = operador_operaciones_pivot.sum(axis=1)
 sgto_matriz_operadores_dias = operador_operaciones_pivot.reset_index()
 # Filter out rows with empty or invalid dates
-sgto_matriz_operadores_dias.drop(columns=['', '0'], inplace=True)
+sgto_matriz_operadores_dias.drop(columns=['', '0'], inplace=True, errors='ignore')
 sgto_matriz_operadores_dias = sgto_matriz_operadores_dias[sgto_matriz_operadores_dias['Fecha'].str.strip() != ''].copy()
 sgto_matriz_operadores_dias['Fecha'] = pd.to_datetime(sgto_matriz_operadores_dias['Fecha'], format='%d/%m/%Y')
 sgto_matriz_operadores_dias = sgto_matriz_operadores_dias.sort_values('Fecha')
@@ -411,12 +348,14 @@ def update_log():
 try:
     supabase_client.table('sgto_montos_usd_tdc').delete().neq('id', 0).execute()
     insert_table_data('sgto_montos_usd_tdc', metricas_df.to_dict(orient='records'))
+    print("Métricas principales actualizadas.")
 except Exception as e:
     print(f"Error updating sgto_montos_usd_tdc: {e}")
 
 try:
     supabase_client.table('sgto_matriz_operadores_dias').delete().neq('id', 0).execute()
     insert_table_data('sgto_matriz_operadores_dias', sgto_matriz_operadores_dias.to_dict(orient='records'))
+    print("Métricas de operadores por día actualizadas.")
 except Exception as e:
     print(f"Error updating sgto_matriz_operadores_dias: {e}")
 
@@ -435,6 +374,7 @@ except Exception as e:
 try:
     supabase_client.table('sgto_historico_caja').delete().neq('id', 0).execute()
     insert_table_data('sgto_historico_caja', df.to_dict(orient='records'))
+    print("Métricas de histórico de caja actualizadas.")
 except Exception as e:
     print(f"Error updating sgto_historico_caja: {e}")
 
@@ -447,6 +387,7 @@ except Exception as e:
 try:
     supabase_client.table('sgto_operaciones_usd_por_cliente').delete().neq('id', 0).execute()
     insert_table_data('sgto_operaciones_usd_por_cliente', operaciones_usd_por_cliente.to_dict(orient='records'))
+    print("Métricas de operaciones USD por cliente actualizadas.")
 except Exception as e:
     print(f"Error updating sgto_operaciones_usd_por_cliente: {e}")
 
