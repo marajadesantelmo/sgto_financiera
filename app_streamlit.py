@@ -13,51 +13,55 @@ st.set_page_config(
     layout="wide"
 )
 
-# Initialize cookie manager with unique key (without caching to avoid widget warning)
-if 'cookie_manager' not in st.session_state:
-    st.session_state['cookie_manager'] = stx.CookieManager(key='sgto_financiera_cookies')
-
-cookie_manager = st.session_state['cookie_manager']
+# Initialize cookie manager
+cookie_manager = stx.CookieManager(key='sgto_financiera_cookies')
 
 # Inicialización de estado de sesión
 if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
 if 'user' not in st.session_state:
     st.session_state['user'] = None
-if 'cookies_loaded' not in st.session_state:
-    st.session_state['cookies_loaded'] = False
+if 'cookies_ready' not in st.session_state:
+    st.session_state['cookies_ready'] = False
 
-# Load cookies and auto-login if credentials exist
-if not st.session_state['cookies_loaded']:
-    try:
-        # Wait for cookies to be ready
-        all_cookies = cookie_manager.get_all()
-        if all_cookies is not None:
-            st.session_state['cookies_loaded'] = True
+# Wait for cookies to be ready and try auto-login
+if not st.session_state['cookies_ready']:
+    all_cookies = cookie_manager.get_all()
+    if all_cookies is not None and len(all_cookies) >= 0:
+        st.session_state['cookies_ready'] = True
+        
+        # Try auto-login if not already authenticated
+        if not st.session_state['authenticated']:
+            saved_email = all_cookies.get('saved_email')
+            saved_password = all_cookies.get('saved_password')
             
-            saved_email = cookie_manager.get('saved_email')
-            saved_password = cookie_manager.get('saved_password')
-            
-            if saved_email and saved_password and not st.session_state['authenticated']:
+            if saved_email and saved_password:
                 try:
                     user = login_user(saved_email, saved_password)
                     if user:
                         st.session_state['authenticated'] = True
                         st.session_state['user'] = user
-                except:
+                        st.rerun()
+                except Exception as e:
                     # If auto-login fails, clear invalid cookies
-                    cookie_manager.delete('saved_email', key='cookie_email_deleter_auto')
-                    cookie_manager.delete('saved_password', key='cookie_password_deleter_auto')
-    except:
-        pass
+                    try:
+                        cookie_manager.delete('saved_email', key='auto_delete_email')
+                        cookie_manager.delete('saved_password', key='auto_delete_password')
+                    except:
+                        pass
 
 def handle_logout():
     st.session_state['authenticated'] = False
     st.session_state['user'] = None
+    st.session_state['cookies_ready'] = False
     logout_user()
     # Clear cookies on logout
-    cookie_manager.delete('saved_email', key='cookie_email_deleter_logout')
-    cookie_manager.delete('saved_password', key='cookie_password_deleter_logout')
+    try:
+        cookie_manager.delete('saved_email', key='logout_delete_email')
+        cookie_manager.delete('saved_password', key='logout_delete_password')
+    except:
+        pass
+    st.rerun()
 
 # Página de login
 if not st.session_state['authenticated']:
@@ -77,13 +81,14 @@ if not st.session_state['authenticated']:
                 st.session_state['user'] = user
                 
                 # Save credentials in cookies if "Remember me" is checked
-                if remember_me and cookie_manager:
+                if remember_me:
                     try:
                         # Set cookies without expiration (permanent) with unique keys
-                        cookie_manager.set('saved_email', email, key='cookie_email_setter')
-                        cookie_manager.set('saved_password', password, key='cookie_password_setter')
+                        cookie_manager.set('saved_email', email, key='login_set_email')
+                        cookie_manager.set('saved_password', password, key='login_set_password')
                     except Exception as e:
-                        st.warning(f"No se pudieron guardar las credenciales: {str(e)}")
+                        # Cookie saving is not critical, so just log it
+                        pass
                 
                 st.success('Login exitoso!')
                 st.rerun()

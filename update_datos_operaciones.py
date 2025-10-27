@@ -215,7 +215,6 @@ sgto_matriz_operadores_dias['Fecha'] = sgto_matriz_operadores_dias['Fecha'].dt.s
 
 ### Tabla de tipo de cambio y montos operados para operaciones en USD ###
 
-
 operaciones_usd.loc[:, 'Monto'] = operaciones_usd['Monto'].abs()
 operaciones_usd['MontoxTC'] = operaciones_usd['Monto'] * operaciones_usd['TC']
 
@@ -223,7 +222,7 @@ tabla_monto_operado = operaciones_usd.groupby('Fecha').agg({
     'Monto': 'sum'
 }).reset_index()
 
-tabla_tipo_de_cambio_por_dia = operaciones_usd[operaciones_usd['TC'] != 0].groupby('Fecha').agg({         # Qué hacer con los casos donde TC es NaN??
+tabla_tipo_de_cambio_por_dia = operaciones_usd[operaciones_usd['TC'] > 1000].groupby('Fecha').agg({         # Qué hacer con los casos donde TC es NaN??
     'Monto': 'sum',    
     'MontoxTC': 'sum'
 }).reset_index()
