@@ -219,4 +219,26 @@ def show_page_operaciones():
         # Mostrar el gráfico
         st.plotly_chart(fig_barras, use_container_width=True)
 
+        # Gráfico de barras para monto operado en general en base a column "Monto" de tabla_tdc
+        fig_barras = px.bar(
+            tabla_tdc,
+            x=tabla_tdc['Fecha'].dt.strftime('%d/%m/%Y'),
+            y='Monto',
+            title='Monto Operado en General por Día',
+        )
+
+        # Customizar el diseño
+        fig_barras.update_layout(
+            xaxis_title='Fecha',
+            yaxis_title='Monto Operado (USD)',
+            xaxis_tickangle=-45,
+            showlegend=False,
+            height=600,
+            xaxis={'type': 'category'},  # Forzar eje x como categoría
+            xaxis_tickmode='array'  # Asegurar que se muestren todas las fechas
+        )
+
+        # Mostrar el gráfico
+        st.plotly_chart(fig_barras, use_container_width=True)
+
     st.markdown("""---""")
