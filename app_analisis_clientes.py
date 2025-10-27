@@ -7,6 +7,31 @@ def show_page_analisis_clientes():
     # Fetch data
     sgto_operaciones_usd_por_cliente = fetch_table_data("sgto_operaciones_usd_por_cliente")
     top20 = fetch_table_data("sgto_top_20_participacion_operaciones_usd_por_cliente")
+    historico_clientes = fetch_table_data("sgto_operaciones_por_cliente_historico")
+
+    def format_currency(val):
+        try:
+            return f"${val:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        except Exception:
+            return val
+
+    def format_percentage(val):
+        try:
+            return f"{val:.2f}%"
+        except Exception:
+            return val
+
+    def format_tc(val):
+        try:
+            return f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        except Exception:
+            return val
+
+    def highlight_perdido(row):
+        fill = "background-color: rgba(255, 0, 0, 0.12)"
+        if row.get("Tipo") == "Perdido":
+            return [fill] * len(row)
+        return [""] * len(row)
 
     st.title("📊 Análisis de Clientes")
 
@@ -23,26 +48,13 @@ def show_page_analisis_clientes():
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        st.header("Top 20 Clientes por Participación")
+        st.header("Top 20 Clientes por Participación - Mes actual")
         
         # Prepare top20 display
         try:
             top20_display = top20.copy()
             if 'id' in top20_display.columns:
                 top20_display = top20_display.drop('id', axis=1)
-            
-            # Format currency columns
-            def format_currency(val):
-                try:
-                    return f"${val:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                except:
-                    return val
-
-            def format_percentage(val):
-                try:
-                    return f"{val:.2f}%"
-                except:
-                    return val
 
             # Display styled table
             st.dataframe(
@@ -63,7 +75,7 @@ def show_page_analisis_clientes():
             st.error(f"Error al procesar la tabla Top 20: {str(e)}")
 
     with col2:
-        st.header("Distribución de Participación")
+        st.header("Porcentaje sobre monto operado - Mes actual")
         
         # Create pie chart
         try:
@@ -151,6 +163,44 @@ def show_page_analisis_clientes():
         )
         
         st.caption(f"Mostrando {len(full_display)} de {len(sgto_operaciones_usd_por_cliente)} clientes")
-        
+    
     except Exception as e:
         st.error(f"Error al procesar la tabla completa: {str(e)}")
+
+    st.subheader('Métricas históricas por cliente')
+
+    if historico_clientes is None or historico_clientes.empty:
+        st.info("No hay datos históricos de clientes disponibles")
+        return
+
+    historico_display = historico_clientes.copy()
+    if 'id' in historico_display.columns:
+        historico_display = historico_display.drop('id', axis=1)
+
+    tipos_disponibles = sorted(historico_display['Tipo'].dropna().unique()) if 'Tipo' in historico_display.columns else []
+    filtro_tipo = st.selectbox(
+        "Filtrar por tipo de cliente",
+        options=["Todos"] + tipos_disponibles,
+        index=0,
+    )
+
+    if filtro_tipo != "Todos" and 'Tipo' in historico_display.columns:
+        historico_display = historico_display[historico_display['Tipo'] == filtro_tipo]
+
+    st.dataframe(
+        historico_display.style
+        .format({
+            'Monto total operado': format_currency,
+            'TC prom': format_tc,
+        })
+        .apply(highlight_perdido, axis=1)
+        .set_table_styles([
+            {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black'), ('font-weight', 'bold')]},
+            {'selector': 'td', 'props': [('text-align', 'left')]}
+        ])
+        .hide(axis='index'),
+        height=500,
+        use_container_width=True,
+    )
+
+    st.caption(f"Mostrando {len(historico_display)} de {len(historico_clientes)} clientes históricos")

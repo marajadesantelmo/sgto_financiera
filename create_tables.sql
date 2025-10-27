@@ -80,3 +80,11 @@ CREATE TABLE sgto_top_20_participacion_operaciones_usd_por_cliente (
     "Porcentaje" NUMERIC
 );
 
+CREATE TABLE sgto_operaciones_por_cliente_historico (
+    id SERIAL PRIMARY KEY,
+    "Cliente" TEXT,
+    "Monto total operado" NUMERIC,
+    "TC prom" NUMERIC,
+    "Ultima fecha" DATE,
+    "Tipo" TEXT
+);
