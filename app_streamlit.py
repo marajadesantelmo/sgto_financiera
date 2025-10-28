@@ -295,4 +295,4 @@ else:
     st.markdown("<hr style='margin-top:3rem;'>", unsafe_allow_html=True)
     _, logout_col, _ = st.columns([1, 2, 1])
     with logout_col:
-    st.button("Cerrar Sesión", on_click=handle_logout, width="stretch")
+        st.button("Cerrar Sesión", on_click=handle_logout, width="stretch")
