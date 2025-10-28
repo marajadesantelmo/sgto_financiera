@@ -41,8 +41,8 @@ def show_page_caja():
                     .set_table_styles([
                         {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black')]},
                         {'selector': 'td', 'props': [('text-align', 'right')]}
-                    ])
-                    .hide(axis='index'),
+                    ]), 
+                    hide_index=True,
                     height=400
                 )
         else:
@@ -64,7 +64,7 @@ def show_page_caja():
         fig_ganancias.update_layout(
             xaxis_title='Fecha',
             yaxis_title='Ganancias ($)',
-            height=400,
+            height=800,
             xaxis_tickformat='%d/%m/%Y',
             yaxis_tickformat='$,.0f'
         )
@@ -98,7 +98,8 @@ def show_page_caja():
                 styled_df.set_table_styles([
                     {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black')]},
                     {'selector': 'td', 'props': [('text-align', 'right')]}
-                ]).hide(axis='index'),
+                ]), 
+                hide_index=True,
                 height=200
             )
         else:
