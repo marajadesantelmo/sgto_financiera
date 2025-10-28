@@ -86,6 +86,7 @@ def show_page_analisis_clientes():
             fig.update_traces(
                 textposition='inside',
                 textinfo='percent',
+                textfont_size=16,
                 hovertemplate='<b>%{label}</b><br>Participación: %{value:.2f}%<br>Monto: $%{customdata:,.0f}<extra></extra>',
                 customdata=pie_data['Monto operado en el mes']
             )
@@ -99,9 +100,13 @@ def show_page_analisis_clientes():
                     y=0.5,
                     xanchor="left",
                     x=1.05,
-                    font=dict(size=12)
+                    font=dict(size=14)
                 ),
-                margin=dict(l=20, r=150, t=50, b=20)
+                margin=dict(l=20, r=150, t=50, b=20),
+                hoverlabel=dict(
+                    font_size=16,
+                    font_family="Arial"
+                )
             )
             
             st.plotly_chart(fig, use_container_width=True)
