@@ -80,7 +80,7 @@ def show_page_analisis_clientes():
                 values='Porcentaje',
                 names='Cliente',
                 title='Participación por Cliente (%)',
-                hole=0.4  # Donut chart
+                hole=0.2  # Donut chart
             )
             
             fig.update_traces(
@@ -99,7 +99,7 @@ def show_page_analisis_clientes():
                     y=0.5,
                     xanchor="left",
                     x=1.05,
-                    font=dict(size=9)
+                    font=dict(size=12)
                 ),
                 margin=dict(l=20, r=150, t=50, b=20)
             )
