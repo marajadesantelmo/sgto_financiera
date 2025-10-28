@@ -69,7 +69,7 @@ def show_page_caja():
             yaxis_tickformat='$,.0f'
         )
 
-        st.plotly_chart(fig_ganancias, use_container_width=True)
+    st.plotly_chart(fig_ganancias, width="stretch")
 
     # Formatear tabla de seguimiento de caja
     st.subheader("Resumen y proyecciones")

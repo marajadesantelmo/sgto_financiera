@@ -158,7 +158,7 @@ def show_page_operaciones():
             yaxis=dict(range=[1300, 1800], title='')
         )
 
-        st.plotly_chart(fig_tdc, use_container_width=True)
+    st.plotly_chart(fig_tdc, width="stretch")
 
     with col2a:
         st.header("Operaciones por Operador")
@@ -217,7 +217,7 @@ def show_page_operaciones():
         )
 
         # Mostrar el gráfico
-        st.plotly_chart(fig_barras, use_container_width=True)
+        st.plotly_chart(fig_barras, width="stretch")
 
         # Gráfico de barras para monto operado en general en base a column "Monto" de tabla_tdc
         fig_barras = px.bar(
@@ -239,6 +239,6 @@ def show_page_operaciones():
         )
 
         # Mostrar el gráfico
-        st.plotly_chart(fig_barras, use_container_width=True)
+        st.plotly_chart(fig_barras, width="stretch")
 
     st.markdown("""---""")
