@@ -58,9 +58,9 @@ def show_page_analisis_clientes():
                 .set_table_styles([
                     {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black'), ('font-weight', 'bold')]},
                     {'selector': 'td', 'props': [('text-align', 'right')]}
-                ])
-                .hide(axis='index'),
+                ]),
                 height=600,
+                hide_index=True,
                 use_container_width=True
             )
         except Exception as e:
@@ -148,9 +148,9 @@ def show_page_analisis_clientes():
             .set_table_styles([
                 {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black'), ('font-weight', 'bold')]},
                 {'selector': 'td', 'props': [('text-align', 'right')]}
-            ])
-            .hide(axis='index'),
+            ]),
             height=400,
+            hide_index=True,
             use_container_width=True
         )
         
@@ -189,8 +189,8 @@ def show_page_analisis_clientes():
         .set_table_styles([
             {'selector': 'th', 'props': [('background-color', '#f0f2f6'), ('color', 'black'), ('font-weight', 'bold')]},
             {'selector': 'td', 'props': [('text-align', 'left')]}
-        ])
-        .hide(axis='index'),
+        ]),
+        hide_index=True,
         height=500,
         use_container_width=True,
     )
