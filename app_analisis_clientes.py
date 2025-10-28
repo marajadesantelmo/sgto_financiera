@@ -35,6 +35,7 @@ def show_page_analisis_clientes():
 
     st.title("📊 Análisis de Clientes")
 
+
     # Layout with two columns
     col1, col2 = st.columns([2, 1])
 
@@ -60,7 +61,7 @@ def show_page_analisis_clientes():
                 ])
                 .hide(axis='index'),
                 height=600,
-                width="stretch"
+                use_container_width=True
             )
         except Exception as e:
             st.error(f"Error al procesar la tabla Top 20: {str(e)}")
@@ -103,7 +104,7 @@ def show_page_analisis_clientes():
                 margin=dict(l=20, r=150, t=50, b=20)
             )
             
-            st.plotly_chart(fig, width="stretch")
+            st.plotly_chart(fig, use_container_width=True)
         except Exception as e:
             st.error(f"Error al generar el gráfico: {str(e)}")
 
@@ -150,7 +151,7 @@ def show_page_analisis_clientes():
             ])
             .hide(axis='index'),
             height=400,
-            width="stretch"
+            use_container_width=True
         )
         
         st.caption(f"Mostrando {len(full_display)} de {len(sgto_operaciones_usd_por_cliente)} clientes")
@@ -191,7 +192,7 @@ def show_page_analisis_clientes():
         ])
         .hide(axis='index'),
         height=500,
-        width="stretch",
+        use_container_width=True,
     )
 
     st.caption(f"Mostrando {len(historico_display)} de {len(historico_clientes)} clientes históricos")
