@@ -64,7 +64,7 @@ def show_page_caja():
         fig_ganancias.update_layout(
             xaxis_title='Fecha',
             yaxis_title='Ganancias ($)',
-            height=800,
+            height=600,
             xaxis_tickformat='%d/%m/%Y',
             yaxis_tickformat='$,.0f'
         )
