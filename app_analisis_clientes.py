@@ -37,7 +37,7 @@ def show_page_analisis_clientes():
 
 
     # Layout with two columns
-    col1, col2 = st.columns([2, 1])
+    col1, col2 = st.columns([7, 5])
 
     with col1:
         st.header("Top 20 Clientes por Participación - Mes actual")
