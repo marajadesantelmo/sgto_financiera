@@ -195,50 +195,50 @@ def show_page_operaciones():
             st.error(f"Error al procesar datos de operaciones: {str(e)}")
             df_filtrado = pd.DataFrame()
 
-        # Crear gráfico de barras interactivo con Plotly
-        fig_barras = px.bar(
-            df_filtrado,
-            x='Fecha_str',  # Usar la versión string de la fecha
-            y='Cantidad Operaciones',
-            color='Operador',
-            title='Operaciones por Operador y Día',
-            barmode='group'
-        )
+            # Crear gráfico de barras interactivo con Plotly
+            fig_barras = px.bar(
+                df_filtrado,
+                x='Fecha_str',  # Usar la versión string de la fecha
+                y='Cantidad Operaciones',
+                color='Operador',
+                title='Operaciones por Operador y Día',
+                barmode='group'
+            )
 
-        # Customizar el diseño
-        fig_barras.update_layout(
-            xaxis_title='Fecha',
-            yaxis_title='Cantidad de Operaciones',
-            xaxis_tickangle=-45,
-            showlegend=True,
-            height=600,
-            xaxis={'type': 'category'},  # Forzar eje x como categoría
-            xaxis_tickmode='array'  # Asegurar que se muestren todas las fechas
-        )
+            # Customizar el diseño
+            fig_barras.update_layout(
+                xaxis_title='Fecha',
+                yaxis_title='Cantidad de Operaciones',
+                xaxis_tickangle=-45,
+                showlegend=True,
+                height=600,
+                xaxis={'type': 'category'},  # Forzar eje x como categoría
+                xaxis_tickmode='array'  # Asegurar que se muestren todas las fechas
+            )
 
-        # Mostrar el gráfico
-        st.plotly_chart(fig_barras, width="stretch")
+            # Mostrar el gráfico
+            st.plotly_chart(fig_barras, use_container_width=True)
 
-        # Gráfico de barras para monto operado en general en base a column "Monto" de tabla_tdc
-        fig_barras = px.bar(
-            tabla_tdc,
-            x=tabla_tdc['Fecha'].dt.strftime('%d/%m/%Y'),
-            y='Monto',
-            title='Monto Operado en General por Día',
-        )
+            # Gráfico de barras para monto operado en general en base a column "Monto" de tabla_tdc
+            fig_barras = px.bar(
+                tabla_tdc,
+                x=tabla_tdc['Fecha'].dt.strftime('%d/%m/%Y'),
+                y='Monto',
+                title='Monto Operado en General por Día',
+            )
 
-        # Customizar el diseño
-        fig_barras.update_layout(
-            xaxis_title='Fecha',
-            yaxis_title='Monto Operado (USD)',
-            xaxis_tickangle=-45,
-            showlegend=False,
-            height=600,
-            xaxis={'type': 'category'},  # Forzar eje x como categoría
-            xaxis_tickmode='array'  # Asegurar que se muestren todas las fechas
-        )
+            # Customizar el diseño
+            fig_barras.update_layout(
+                xaxis_title='Fecha',
+                yaxis_title='Monto Operado (USD)',
+                xaxis_tickangle=-45,
+                showlegend=False,
+                height=600,
+                xaxis={'type': 'category'},  # Forzar eje x como categoría
+                xaxis_tickmode='array'  # Asegurar que se muestren todas las fechas
+            )
 
-        # Mostrar el gráfico
-        st.plotly_chart(fig_barras, width="stretch")
+            # Mostrar el gráfico
+            st.plotly_chart(fig_barras, use_container_width=True)
 
     st.markdown("""---""")
