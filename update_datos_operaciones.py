@@ -38,7 +38,7 @@ sheet_url = sheet_operaciones_url
 sh = gc.open_by_url(sheet_url)
 worksheet = sh.worksheet('Operaciones Octubre 2025')
 # Leer todo el rango una sola vez y procesar por posición de columna
-all_rows = worksheet.get('A4:AY3961')  # único request
+all_rows = worksheet.get('A4:AY4360')  # único request
 
 # Asegurar que todas las filas tengan la misma longitud (hasta AY -> 51 columnas: 0..50)
 TARGET_COLS = 51
@@ -349,54 +349,78 @@ def update_log():
     supabase_client.from_("sgto_log_entry").insert(log_entry).execute()
 
 try:
-    supabase_client.table('sgto_montos_usd_tdc').delete().neq('id', 0).execute()
-    insert_table_data('sgto_montos_usd_tdc', metricas_df.to_dict(orient='records'))
-    print("Métricas principales actualizadas.")
+    if not metricas_df.empty:
+        supabase_client.table('sgto_montos_usd_tdc').delete().neq('id', 0).execute()
+        insert_table_data('sgto_montos_usd_tdc', metricas_df.to_dict(orient='records'))
+        print("Métricas principales actualizadas.")
+    else:
+        print("No se actualiza sgto_montos_usd_tdc porque el DataFrame está vacío.")
 except Exception as e:
     print(f"Error updating sgto_montos_usd_tdc: {e}")
 
 try:
-    supabase_client.table('sgto_matriz_operadores_dias').delete().neq('id', 0).execute()
-    insert_table_data('sgto_matriz_operadores_dias', sgto_matriz_operadores_dias.to_dict(orient='records'))
-    print("Métricas de operadores por día actualizadas.")
+    if not sgto_matriz_operadores_dias.empty:
+        supabase_client.table('sgto_matriz_operadores_dias').delete().neq('id', 0).execute()
+        insert_table_data('sgto_matriz_operadores_dias', sgto_matriz_operadores_dias.to_dict(orient='records'))
+        print("Métricas de operadores por día actualizadas.")
+    else:
+        print("No se actualiza sgto_matriz_operadores_dias porque el DataFrame está vacío.")
 except Exception as e:
     print(f"Error updating sgto_matriz_operadores_dias: {e}")
 
 try:
-    supabase_client.table('sgto_operaciones_operador_por_dia').delete().neq('id', 0).execute()
-    insert_table_data('sgto_operaciones_operador_por_dia', operaciones_operador_por_dia.to_dict(orient='records'))
+    if not operaciones_operador_por_dia.empty:
+        supabase_client.table('sgto_operaciones_operador_por_dia').delete().neq('id', 0).execute()
+        insert_table_data('sgto_operaciones_operador_por_dia', operaciones_operador_por_dia.to_dict(orient='records'))
+    else:
+        print("No se actualiza sgto_operaciones_operador_por_dia porque el DataFrame está vacío.")
 except Exception as e:
     print(f"Error updating sgto_operaciones_operador_por_dia: {e}")
 
 try:
-    supabase_client.table('sgto_tabla_datos').delete().neq('id', 0).execute()
-    insert_table_data('sgto_tabla_datos', df_tabla.to_dict(orient='records'))
+    if not df_tabla.empty:
+        supabase_client.table('sgto_tabla_datos').delete().neq('id', 0).execute()
+        insert_table_data('sgto_tabla_datos', df_tabla.to_dict(orient='records'))
+    else:
+        print("No se actualiza sgto_tabla_datos porque el DataFrame está vacío.")
 except Exception as e:
     print(f"Error updating sgto_tabla_datos: {e}")
 
 try:
-    supabase_client.table('sgto_historico_caja').delete().neq('id', 0).execute()
-    insert_table_data('sgto_historico_caja', df.to_dict(orient='records'))
-    print("Métricas de histórico de caja actualizadas.")
+    if not df.empty:
+        supabase_client.table('sgto_historico_caja').delete().neq('id', 0).execute()
+        insert_table_data('sgto_historico_caja', df.to_dict(orient='records'))
+        print("Métricas de histórico de caja actualizadas.")
+    else:
+        print("No se actualiza sgto_historico_caja porque el DataFrame está vacío.")
 except Exception as e:
     print(f"Error updating sgto_historico_caja: {e}")
 
 try:
-    supabase_client.table('sgto_tabla_tdc').delete().neq('id', 0).execute()
-    insert_table_data('sgto_tabla_tdc', tabla_tdc.to_dict(orient='records'))
+    if not tabla_tdc.empty:
+        supabase_client.table('sgto_tabla_tdc').delete().neq('id', 0).execute()
+        insert_table_data('sgto_tabla_tdc', tabla_tdc.to_dict(orient='records'))
+    else:
+        print("No se actualiza sgto_tabla_tdc porque el DataFrame está vacío.")
 except Exception as e:
     print(f"Error updating sgto_tabla_tdc: {e}")
 
 try:
-    supabase_client.table('sgto_operaciones_usd_por_cliente').delete().neq('id', 0).execute()
-    insert_table_data('sgto_operaciones_usd_por_cliente', operaciones_usd_por_cliente.to_dict(orient='records'))
-    print("Métricas de operaciones USD por cliente actualizadas.")
+    if not operaciones_usd_por_cliente.empty:
+        supabase_client.table('sgto_operaciones_usd_por_cliente').delete().neq('id', 0).execute()
+        insert_table_data('sgto_operaciones_usd_por_cliente', operaciones_usd_por_cliente.to_dict(orient='records'))
+        print("Métricas de operaciones USD por cliente actualizadas.")
+    else:
+        print("No se actualiza sgto_operaciones_usd_por_cliente porque el DataFrame está vacío.")
 except Exception as e:
     print(f"Error updating sgto_operaciones_usd_por_cliente: {e}")
 
 try:
-    supabase_client.table('sgto_top_20_participacion_operaciones_usd_por_cliente').delete().neq('id', 0).execute()
-    insert_table_data('sgto_top_20_participacion_operaciones_usd_por_cliente', top_20_participacion_operaciones_usd_por_cliente.to_dict(orient='records'))
+    if not top_20_participacion_operaciones_usd_por_cliente.empty:
+        supabase_client.table('sgto_top_20_participacion_operaciones_usd_por_cliente').delete().neq('id', 0).execute()
+        insert_table_data('sgto_top_20_participacion_operaciones_usd_por_cliente', top_20_participacion_operaciones_usd_por_cliente.to_dict(orient='records'))
+    else:
+        print("No se actualiza sgto_top_20_participacion_operaciones_usd_por_cliente porque el DataFrame está vacío.")
 except Exception as e:
     print(f"Error updating sgto_top_20_participacion_operaciones_usd_por_cliente: {e}")
 
