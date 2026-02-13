@@ -5,6 +5,8 @@ from tokens import url_supabase, key_supabase, sheet_operaciones_url, sheet_cont
 from supabase import create_client, Client
 supabase_client = create_client(url_supabase, key_supabase)
 from datetime import datetime, timedelta
+from fuzzywuzzy import fuzz
+import numpy as np
 
 def convert_to_numeric(value):
     if isinstance(value, str):
@@ -34,95 +36,58 @@ if os.path.exists('\\\\dc01\\Usuarios\\PowerBI\\flastra\\Documents\\sgto_financi
 elif os.path.exists('credenciales_gsheets.json'):
     gc = gspread.service_account(filename='credenciales_gsheets.json')
 #Operaciones
-sheet_url = sheet_operaciones_url
+#sheet_url = sheet_operaciones_url
+sheet_url = 'https://docs.google.com/spreadsheets/d/15r3kWfDsgK84Uf5u0qap8Etcf9NpZA-lzSNv67uhYLk'
 sh = gc.open_by_url(sheet_url)
-worksheet = sh.worksheet('Operaciones Octubre 2025')
-# Leer todo el rango una sola vez y procesar por posición de columna
-all_rows = worksheet.get('A4:AY4360')  # único request
+worksheet = sh.worksheet('Sgto')
+header = worksheet.get('B4:AY4')[0]  
+all_rows = worksheet.get('B43428:AY97154') 
 
-# Asegurar que todas las filas tengan la misma longitud (hasta AY -> 51 columnas: 0..50)
-TARGET_COLS = 51
-padded = [row + [''] * (TARGET_COLS - len(row)) if len(row) < TARGET_COLS else row[:TARGET_COLS] for row in all_rows]
 
-# DataFrame con columnas por índice para seleccionar por posición
-df_all = pd.DataFrame(padded, columns=list(range(TARGET_COLS)))
+base = pd.DataFrame(all_rows, columns=header)
+base.columns = ['Año', 'mes', 'dia', 'Operador', 'Categoria', 'Cliente', 'Descripcion', 'libre1', 'Mov'] + header[9:].copy()
+base.drop(columns=['libre1'], inplace=True)
+base = base.replace('', pd.NA)
+base = base.dropna(subset=['Año', 'mes', 'dia'])
+base['Fecha'] = pd.to_datetime(base[['Año', 'dia', 'mes']].astype(int).astype(str).agg('-'.join, axis=1), errors='coerce').dt.strftime('%Y-%m-%d')
+base = base.drop(columns=['Año', 'dia', 'mes'])
+base = base.dropna(subset=['Fecha', 'Operador'])
+base = base[['Fecha', 'Operador', 'Categoria', 'Cliente', 'Descripcion', 'Mov'] + [col for col in base.columns if col not in ['Fecha', 'Operador', 'Categoria', 'Cliente', 'Descripcion', 'Mov']]]
 
-# Base general: Fecha(0), Operador(1), Cliente(2)
-base = df_all[[0, 1, 2]].copy()
-base.columns = ['Fecha', 'Operador', 'Cliente']
+# Convert 'Mov' and 'TC' columns to numeric
+base['Mov'] = base['Mov'].apply(convert_to_numeric)
+base['TC'] = base['TC'].apply(convert_to_numeric)
 
-def make_single(col_idx, moneda, caja):
-    df = pd.concat([base, df_all[[col_idx]].copy()], axis=1)
-    df.columns = ['Fecha', 'Operador', 'Cliente', 'Monto']
-    df = df.replace('', pd.NA).dropna(subset=['Monto']).copy()
-    df['Moneda'] = moneda
-    df['Caja'] = caja
-    return df
+# Convert to numeric with error handling
+base['Mov'] = pd.to_numeric(base['Mov'], errors='coerce')
+base['TC'] = pd.to_numeric(base['TC'], errors='coerce')
 
-def make_pair(col_idx_monto, col_idx_tc, moneda, caja):
-    df = pd.concat([base, df_all[[col_idx_monto, col_idx_tc]].copy()], axis=1)
-    df.columns = ['Fecha', 'Operador', 'Cliente', 'Monto', 'TC']
-    df = df.replace('', pd.NA).dropna(subset=['Monto']).copy()
-    df['Moneda'] = moneda
-    df['Caja'] = caja
-    return df
-
-# Construir data2..data15 usando las posiciones originales
-data2  = make_pair(5, 6,   'USD',          'Salta')              # F:G
-data3  = make_single(10,    'Pesos',        'Salta')             # K
-data4  = make_single(13,    'Transferencia','Salta')             # N
-data5  = make_pair(16, 17,  'USD',          'Office Park')       # Q:R
-data6  = make_single(21,    'Pesos',        'Office Park')       # V
-data7  = make_single(24,    'Pesos',        'Office Park')       # Y
-data8  = make_single(27,    'Euros',        'Office Park')       # AB
-data9  = make_single(30,    'Euros',        'Salta')             # AE
-data10 = make_single(33,    'USDT',         'Salta')             # AH
-data11 = make_single(36,    'USD',          'Mindful')           # AK
-data12 = make_pair(39, 40,  'USD',          'Reconquista CABA')   # AN:AO
-data13 = make_single(44,    'Pesos',        'Reconquista CABA')   # AS
-data14 = make_single(47,    'Transferencia','Reconquista CABA')   # AV
-data15 = make_single(50,    'Euros',        'Reconquista CABA')   # AY
-
-operaciones = pd.concat([data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14, data15], ignore_index=True)
+operaciones = base.iloc[:,0:7].copy()    ### Solo tomo la primera columna, luego se podría incluir más info de Montos para complementar Mov (1era columna)
+#operaciones = operaciones[operaciones['Categoria'].isin(['Compra USD', 'Venta USD'])].copy()
 operaciones['Cliente'] = operaciones['Cliente'].str.strip().str.title()
-operaciones = operaciones[operaciones['Cliente'] != 'Apertura De Caja Octubre']
+operaciones['Operador'] = operaciones['Operador'].str.strip().str.upper()
+operaciones = operaciones[~operaciones['Cliente'].str.contains('Apertura De Caja|Ajuste Caja', na=False)]
 operaciones = operaciones[operaciones['Cliente'] != "Movimiento De Caja"].copy()    # Excluir movimientos de caja
-operaciones.dropna(subset=['Fecha'], inplace=True)
-operaciones.fillna("0", inplace=True)
-numeric_columns = ['Monto', 'TC']
-for col in numeric_columns:
-    operaciones[col] = operaciones[col].apply(convert_to_numeric)
-
-operaciones['Monto'] = pd.to_numeric(operaciones['Monto'], errors='coerce')
-operaciones['TC'] = pd.to_numeric(operaciones['TC'], errors='coerce')
-
-operaciones_usd = operaciones[operaciones['Moneda'] == 'USD'].copy()   
+operaciones = operaciones.dropna(subset=['Cliente'])  # Drop rows with missing Cliente
+operaciones[['Mov', 'TC']] = operaciones[['Mov', 'TC']].fillna(0)  # Fill NaN only in numeric columns
 
 ### Tablas de Clientes Mensual ###
-
-operaciones_usd_por_cliente = operaciones_usd.groupby(['Cliente', 'Moneda']).agg({
-    'Monto': ['count', lambda x: x.abs().sum()]
+operaciones_mes_actual = operaciones[pd.to_datetime(operaciones['Fecha']).dt.to_period('M') == pd.to_datetime("today").to_period('M')].copy()
+operaciones_usd_por_cliente = operaciones_mes_actual.groupby(['Cliente', 'Categoria']).agg({
+    'Mov': ['count', lambda x: x.abs().sum()]
 }).reset_index()
-
 operaciones_usd_por_cliente.columns = ['Cliente', 'Moneda', 'Cantidad Operaciones', 'Monto operado en el mes']
-
 operaciones_usd_por_cliente.sort_values(by='Monto operado en el mes', ascending=False, inplace=True)
 operaciones_usd_por_cliente.reset_index(drop=True, inplace=True)
 operaciones_usd_por_cliente = operaciones_usd_por_cliente[operaciones_usd_por_cliente['Monto operado en el mes'] != 0]
 top_20_participacion_operaciones_usd_por_cliente = operaciones_usd_por_cliente.nlargest(20, 'Monto operado en el mes').copy()
-
-# Calculate total amount for percentage calculation
 total_monto = operaciones_usd_por_cliente['Monto operado en el mes'].sum()
-
-# Add percentage column to top 20
 top_20_participacion_operaciones_usd_por_cliente['Porcentaje'] = (top_20_participacion_operaciones_usd_por_cliente['Monto operado en el mes'] / total_monto * 100).round(2)
 
-# Calculate "Otros" row
+#Otros
 otros_monto = operaciones_usd_por_cliente.iloc[20:]['Monto operado en el mes'].sum()
 otros_cantidad = operaciones_usd_por_cliente.iloc[20:]['Cantidad Operaciones'].sum()
 otros_porcentaje = (otros_monto / total_monto * 100).round(2)
-
-# Create "Otros" row
 otros_row = pd.DataFrame({
     'Cliente': ['Otros'],
     'Moneda': ['USD'],
@@ -130,12 +95,9 @@ otros_row = pd.DataFrame({
     'Monto operado en el mes': [otros_monto],
     'Porcentaje': [otros_porcentaje]
 })
-
-# Concatenate top 20 with "Otros" row
 top_20_participacion_operaciones_usd_por_cliente = pd.concat([top_20_participacion_operaciones_usd_por_cliente, otros_row], ignore_index=True)
 
 ### Tabla de operaciones por operador y dia ###
-
 operaciones_operador_por_dia = operaciones.groupby(['Fecha', 'Operador']).size().reset_index(name='Cantidad Operaciones')
 operador_operaciones_pivot = operaciones_operador_por_dia.pivot_table(
     index='Fecha', 
@@ -144,25 +106,31 @@ operador_operaciones_pivot = operaciones_operador_por_dia.pivot_table(
     fill_value=0
 )
 operador_operaciones_pivot['Total'] = operador_operaciones_pivot.sum(axis=1)
+
+#Matriz operadores por día
 sgto_matriz_operadores_dias = operador_operaciones_pivot.reset_index()
-# Filter out rows with empty or invalid dates
-sgto_matriz_operadores_dias.drop(columns=['', '0'], inplace=True, errors='ignore')
+columns_to_keep = ['BS', 'BS AS', 'CA', 'EP', 'FB', 'MT', 'NP', 'NS', 'TDLA', 'Total']
+available_columns = [col for col in columns_to_keep if col in sgto_matriz_operadores_dias.columns]
+sgto_matriz_operadores_dias = sgto_matriz_operadores_dias[['Fecha'] + available_columns]
+sgto_matriz_operadores_dias['BS AS'] = sgto_matriz_operadores_dias['BS'] + sgto_matriz_operadores_dias['BS AS']
+sgto_matriz_operadores_dias.drop(columns=['BS'], inplace=True)
+
 sgto_matriz_operadores_dias = sgto_matriz_operadores_dias[sgto_matriz_operadores_dias['Fecha'].str.strip() != ''].copy()
-sgto_matriz_operadores_dias['Fecha'] = pd.to_datetime(sgto_matriz_operadores_dias['Fecha'], format='%d/%m/%Y')
+sgto_matriz_operadores_dias['Fecha'] = pd.to_datetime(sgto_matriz_operadores_dias['Fecha'], format='%Y-%m-%d', errors='coerce')
 sgto_matriz_operadores_dias = sgto_matriz_operadores_dias.sort_values('Fecha')
-sgto_matriz_operadores_dias['Fecha'] = sgto_matriz_operadores_dias['Fecha'].dt.strftime('%d/%m/%Y')
+sgto_matriz_operadores_dias['Fecha'] = sgto_matriz_operadores_dias['Fecha'].dt.strftime('%Y-%m-%d')
 
-
-### Tabla de tipo de cambio y montos operados para operaciones en USD ###
-
+### Tabla Montos operados para operaciones en USD ###
+operaciones_usd = operaciones.copy()
+operaciones_usd.rename(columns={'Mov': 'Monto', 'Categoria': 'Moneda'}, inplace=True)
 operaciones_usd.loc[:, 'Monto'] = operaciones_usd['Monto'].abs()
 operaciones_usd['MontoxTC'] = operaciones_usd['Monto'] * operaciones_usd['TC']
 tabla_monto_operado = operaciones_usd.groupby('Fecha').agg({
     'Monto': 'sum'
 }).reset_index()
 
+### Tabla Tipo de Cambio Promedio por día ###
 operaciones_usd_tdc_clean = operaciones_usd[operaciones_usd['TC'] > 1000].copy()   # Filtrar operaciones con TC válido # Qué hacer con los casos donde TC es NaN??
-
 tabla_tipo_de_cambio_por_dia = operaciones_usd_tdc_clean.groupby('Fecha').agg({         
     'Monto': 'sum',    
     'MontoxTC': 'sum'
@@ -170,38 +138,26 @@ tabla_tipo_de_cambio_por_dia = operaciones_usd_tdc_clean.groupby('Fecha').agg({
 
 tabla_tipo_de_cambio_por_dia['TC Prom'] = tabla_tipo_de_cambio_por_dia['MontoxTC'] / tabla_tipo_de_cambio_por_dia['Monto']
 tabla_tipo_de_cambio_por_dia = tabla_tipo_de_cambio_por_dia[['Fecha', 'TC Prom']]
-
-# Calculo de tipo de cambio maximo y minimo por dia
 sgto_montos_usd_tdc = operaciones_usd_tdc_clean.groupby('Fecha').agg({
-    'TC': ['min', 'max']
+    'TC': [lambda x: x.quantile(0.05), lambda x: x.quantile(0.95)]
 }).reset_index()
-
-# Reset multi-index and rename columns before merging
 sgto_montos_usd_tdc_flat = sgto_montos_usd_tdc.copy()
 sgto_montos_usd_tdc_flat.columns = ['Fecha', 'TC_min', 'TC_max']
 tabla_tdc = tabla_tipo_de_cambio_por_dia[['Fecha', 'TC Prom']].merge(
     sgto_montos_usd_tdc_flat,
     on='Fecha',
-    how='left'
-)
-
+    how='left')
 tabla_tdc = tabla_tdc.merge(
     tabla_monto_operado,
     on='Fecha',
-    how='left'
-)
-
-tabla_tdc['Fecha'] = pd.to_datetime(tabla_tdc['Fecha'], format='%d/%m/%Y').dt.strftime('%Y-%m-%d')
+    how='left')
 
 #### Cálculo de métricas principales ###
 
-# Get yesterday's date in YYYY-MM-DD format to match tabla_tdc
 ayer = pd.to_datetime("today") - pd.Timedelta(days=1)
 ayer_formatted = ayer.strftime('%Y-%m-%d')
-
-# Get today's date in YYYY-MM-DD format to match tabla_tdc
-hoy = pd.to_datetime("today")
-hoy_formatted = hoy.strftime('%Y-%m-%d')
+ante_ayer = pd.to_datetime("today") - pd.Timedelta(days=2)
+ante_ayer_formatted = ante_ayer.strftime('%Y-%m-%d')
 
 # Get metrics from tabla_tdc for yesterday
 if ayer_formatted in tabla_tdc['Fecha'].values:
@@ -213,122 +169,106 @@ else:
     tdc_ayer = 0
 
 # Get metrics from tabla_tdc for today
-if hoy_formatted in tabla_tdc['Fecha'].values:
-    hoy_data = tabla_tdc[tabla_tdc['Fecha'] == hoy_formatted].iloc[0]
-    monto_usd_hoy = hoy_data['Monto']
-    tdc_hoy = hoy_data['TC Prom']
+if ante_ayer_formatted in tabla_tdc['Fecha'].values:
+    ante_ayer_data = tabla_tdc[tabla_tdc['Fecha'] == ante_ayer_formatted].iloc[0]
+    monto_usd_ante_ayer = ante_ayer_data['Monto']
+    tdc_ante_ayer = ante_ayer_data['TC Prom']
 else:
-    monto_usd_hoy = 0
-    tdc_hoy = 0
-
+    monto_usd_ante_ayer = 0
+    tdc_ante_ayer = 0
 metricas_df = pd.DataFrame([{
     'Monto USD ayer': monto_usd_ayer,
     'TdC ayer': tdc_ayer,
-    'Monto USD hoy': monto_usd_hoy,
-    'TdC hoy': tdc_hoy
+    'Monto USD anteayer': monto_usd_ante_ayer,
+    'TdC anteayer': tdc_ante_ayer
 }])
 
+#### Analisis de clientes para lista de difusion
 
+clientes_worksheet = sh.worksheet('Cliente Diego y Joaco')
+clientes_diego = clientes_worksheet.get('B3:B500')
+clientes_diego_list = [item[0].strip().title() for item in clientes_diego if item and item[0].strip() != '']
 
+clientes_joaco = clientes_worksheet.get('F3:F500')
+clientes_joaco_list = [item[0].strip().title() for item in clientes_joaco if item and item[0].strip() != '']
 
+# Create combined client list with vendedor
+clientes_con_vendedor = []
+for cliente in clientes_diego_list:
+    clientes_con_vendedor.append({'Cliente': cliente, 'Vendedor': 'Diego'})
+for cliente in clientes_joaco_list:
+    clientes_con_vendedor.append({'Cliente': cliente, 'Vendedor': 'Joaco'})
 
+# Function to find best fuzzy match
+def find_best_match(cliente_lista, operaciones_clientes, threshold=80):
+    best_match = None
+    best_score = 0
+    for op_cliente in operaciones_clientes:
+        score = fuzz.ratio(cliente_lista.lower(), op_cliente.lower())
+        if score > best_score and score >= threshold:
+            best_score = score
+            best_match = op_cliente
+    return best_match
 
-#### Control Caja ####
-sheet_url = sheet_control_caja_url
-sh = gc.open_by_url(sheet_url)
-worksheet = sh.worksheet('Control caja')
-fechas_caja = worksheet.get('AP2:BV2')
-total_caja = worksheet.get('AP49:BV49')
-ganancias = worksheet.get('AP50:BV50')
+# Get unique clients from operaciones
+operaciones_clientes = operaciones['Cliente'].unique()
 
+# Current month period
+current_month = pd.to_datetime("today").to_period('M')
 
-data_fechas = pd.DataFrame(fechas_caja).transpose()
-data_total_caja = pd.DataFrame(total_caja).transpose()
-data_ganancias = pd.DataFrame(ganancias).transpose()
-data_fechas.columns = ['Fecha']
-data_total_caja.columns = ['Total Caja']
-data_ganancias.columns = ['Ganancias']
-df = pd.concat([data_fechas, data_total_caja, data_ganancias], axis=1)
+# Create analysis dataframe
+clientes_difusion = []
 
-# Convert 'Fecha' column to standard format dd/mm/yyyy
-df['Fecha'] = df['Fecha'].apply(lambda x: x.strip() if isinstance(x, str) else x)  # Remove whitespace if any
-
-# Process dates
-def standardize_date(date_str):
-    if not isinstance(date_str, str):
-        return date_str
+for cliente_info in clientes_con_vendedor:
+    cliente_lista = cliente_info['Cliente']
+    vendedor = cliente_info['Vendedor']
     
-    # Split by '/' if present
-    parts = date_str.split('/')
+    # Find fuzzy match
+    matched_cliente = find_best_match(cliente_lista, operaciones_clientes)
     
-    if len(parts) == 2:
-        day, month = parts
-    else:
-        # Assuming format like '01/09'
-        day = date_str[:2] if len(date_str) >= 2 else date_str
-        month = date_str[3:5] if len(date_str) >= 5 else ""
+    if matched_cliente:
+        # Filter operations for this client
+        ops_cliente = operaciones[operaciones['Cliente'] == matched_cliente].copy()
         
-    # Ensure day has two digits
-    if len(day.strip()) == 1:
-        day = f"0{day.strip()}"
-    else:
-        day = day.strip()
+        # Check if operated in current month
+        ops_mes_actual = ops_cliente[pd.to_datetime(ops_cliente['Fecha']).dt.to_period('M') == current_month]
+        opero_mes_actual = len(ops_mes_actual) > 0
         
-    # Ensure month has two digits
-    if len(month.strip()) == 1:
-        month = f"0{month.strip()}"
-    else:
-        month = month.strip()
+        # Last operation date
+        ultima_operacion = ops_cliente['Fecha'].max() if not ops_cliente.empty else None
         
-    return f"2025-{month}-{day}"
+        # Total operations count
+        cantidad_operaciones = len(ops_cliente)
+        
+        # Total amount (sum of absolute values of Mov)
+        monto_total = ops_cliente['Mov'].abs().sum()
+        
+        # Average TC (excluding zeros)
+        tc_no_zero = ops_cliente[ops_cliente['TC'] != 0]['TC']
+        tc_promedio = tc_no_zero.mean() if not tc_no_zero.empty else 0
+        
+    else:
+        # No match found
+        opero_mes_actual = False
+        ultima_operacion = None
+        cantidad_operaciones = 0
+        monto_total = 0
+        tc_promedio = 0
+    
+    clientes_difusion.append({
+        'Cliente Difusion': cliente_lista,
+        'Matcheo en base de datos': matched_cliente,
+        'Vendedor': vendedor,
+        'Opero mes actual': opero_mes_actual,
+        'Ultima operacion': ultima_operacion,
+        'Cantidad de operaciones': cantidad_operaciones,
+        'Monto total': monto_total,
+        'TC promedio': tc_promedio
+    })
 
-df['Fecha'] = df['Fecha'].apply(standardize_date)
+clientes_difusion = pd.DataFrame(clientes_difusion)
 
-# Convert 'Total Caja' and 'Ganancias' to numeric, removing dots used as thousands separators
-df['Total Caja'] = df['Total Caja'].str.replace('.', '', regex=False).str.replace(',', '.', regex=False).astype(int)
-df['Ganancias'] = df['Ganancias'].str.replace('.', '', regex=False).str.replace(',', '.', regex=False).astype(int)
-
-sheet= gc.open('Datos Financiera')
-seguimiento_worksheet = sheet.worksheet('Seguimiento')
-
-
-# Get the last value of Total Caja column
-last_total_caja = df['Total Caja'].iloc[-1].astype(int).astype(str)
-variacion = (df['Total Caja'].iloc[-1] - df['Total Caja'].iloc[0]) / df['Total Caja'].iloc[0]
-variacion = variacion.round(4).astype(str)
-
-metricas_worksheet = sheet.worksheet('Metricas')
-metricas_worksheet.update( [[last_total_caja]], 'A2')
-metricas_worksheet.update([[variacion]], 'B2')
-### Tablita 
-
-tabla = worksheet.get('AJ62:AR66')
-# Create DataFrame from the tabla data
-df_tabla = pd.DataFrame(tabla)
-
-df_tabla.columns = df_tabla.iloc[0]
-df_tabla = df_tabla.drop(0)
-df_tabla = df_tabla.reset_index(drop=True)
-df_tabla.columns = ['CONCEPTO', '', 'HOY', 'ACUM MES', 'PROM x DIA', 'VAR MA', 'PROY MES', 'VAR PROY', 'Obj'] #Cambio nombre a columna duplicada
-df_tabla = df_tabla.drop(columns=[''])  # Drop the empty column
-df_tabla['HOY'] = df_tabla['HOY'].str.replace('.', '', regex=False)
-df_tabla['ACUM MES'] = df_tabla['ACUM MES'].str.replace('.', '', regex=False)
-df_tabla['PROM x DIA'] = df_tabla['PROM x DIA'].str.replace('.', '', regex=False)
-df_tabla['VAR MA'] = df_tabla['VAR MA'].str.replace('%', '', regex=False)
-df_tabla['PROY MES'] = df_tabla['PROY MES'].str.replace('.', '', regex=False)
-df_tabla['VAR PROY'] = df_tabla['VAR PROY'].str.replace('%', '', regex=False)
-df_tabla['Obj'] = df_tabla['Obj'].str.replace('.', '', regex=False)
-df_tabla['CONCEPTO'] = df_tabla['CONCEPTO'].str.strip() 
-# Convert numeric columns to integers
-numeric_columns = ['HOY', 'ACUM MES', 'PROM x DIA', 'PROY MES', 'Obj']
-for col in numeric_columns:
-    df_tabla[col] = pd.to_numeric(df_tabla[col], errors='coerce').fillna(0).astype(int)
-
-# Convert percentage columns to float and divide by 100
-percentage_columns = ['VAR MA', 'VAR PROY']
-for col in percentage_columns:
-    df_tabla[col] = pd.to_numeric(df_tabla[col], errors='coerce').fillna(0) / 100
-
+clientes_difusion['Opero mes actual'] = clientes_difusion['Opero mes actual'].map({True: 'Si', False: 'No'})
 
 
 #### Carga de datos en supabase ####
@@ -378,25 +318,6 @@ except Exception as e:
     print(f"Error updating sgto_operaciones_operador_por_dia: {e}")
 
 try:
-    if not df_tabla.empty:
-        supabase_client.table('sgto_tabla_datos').delete().neq('id', 0).execute()
-        insert_table_data('sgto_tabla_datos', df_tabla.to_dict(orient='records'))
-    else:
-        print("No se actualiza sgto_tabla_datos porque el DataFrame está vacío.")
-except Exception as e:
-    print(f"Error updating sgto_tabla_datos: {e}")
-
-try:
-    if not df.empty:
-        supabase_client.table('sgto_historico_caja').delete().neq('id', 0).execute()
-        insert_table_data('sgto_historico_caja', df.to_dict(orient='records'))
-        print("Métricas de histórico de caja actualizadas.")
-    else:
-        print("No se actualiza sgto_historico_caja porque el DataFrame está vacío.")
-except Exception as e:
-    print(f"Error updating sgto_historico_caja: {e}")
-
-try:
     if not tabla_tdc.empty:
         supabase_client.table('sgto_tabla_tdc').delete().neq('id', 0).execute()
         insert_table_data('sgto_tabla_tdc', tabla_tdc.to_dict(orient='records'))
@@ -424,86 +345,15 @@ try:
 except Exception as e:
     print(f"Error updating sgto_top_20_participacion_operaciones_usd_por_cliente: {e}")
 
-##### SECCION HISTORICO
-from datetime import timedelta
-#Operaciones
-sheet_url = 'https://docs.google.com/spreadsheets/d/1g3A6eKSYV7rZ0LHDv0JIMCwDt0LSPYyqO0Lncri2fxI'
-sh = gc.open_by_url(sheet_url)
-worksheet = sh.worksheet('Sgto')
-
-#Datos generales
-columns1 = ['Ano', 'Dia', 'Mes', 'Operador', 'Categoria', 'Cliente', 'Categoria', 'libre1', 'Monto', 'TC']
-data_range1 = worksheet.get('B43429:K71547')
-data1 = pd.DataFrame(data_range1, columns=columns1)
-data1['Fecha'] = pd.to_datetime(data1[['Ano', 'Mes', 'Dia']].astype(int).astype(str).agg('-'.join, axis=1), errors='coerce')
-data1 = data1.drop(columns=['Ano', 'Dia', 'Mes'])
-
-data2 = data1[['Fecha', 'Operador', 'Cliente', 'Monto', 'TC']].copy()
-
-# Convert Monto and TC to numeric values
-data2 = data2.dropna(subset=['Monto'])
-data2['Monto'] = data2['Monto'].apply(convert_to_numeric)
-data2['TC'] = data2['TC'].apply(convert_to_numeric)
-
-# Ensure consistent date formatting for both DataFrames
-data2['Fecha'] = pd.to_datetime(data2['Fecha'], errors='coerce').dt.strftime('%Y-%m-%d')
-operaciones_usd['Fecha'] = pd.to_datetime(operaciones_usd['Fecha'], format='%d/%m/%Y', errors='coerce').dt.strftime('%Y-%m-%d')
-
-# Ensure consistent data types
-data2['Monto'] = pd.to_numeric(data2['Monto'], errors='coerce')
-data2['TC'] = pd.to_numeric(data2['TC'], errors='coerce')
-
-# Add missing columns to data2 to match operaciones_usd structure
-data2['Moneda'] = 'USD'
-data2['Caja'] = 'Historical'
-data2['MontoxTC'] = data2['Monto'] * data2['TC']
-operaciones_usd_historico = pd.concat([data2, operaciones_usd], ignore_index=True)
-
-# Group by Cliente and calculate the required metrics
-operaciones_por_cliente_historico = operaciones_usd_historico.groupby('Cliente').agg({
-    'Monto': lambda x: abs(pd.to_numeric(x, errors='coerce')).sum(),
-    'TC': lambda x: pd.to_numeric(x, errors='coerce').replace(0, None).mean(),
-    'Fecha': 'max' 
-}).rename(columns={
-    'Monto': 'Monto total operado',
-    'TC': 'TC prom',
-    'Fecha': 'Ultima fecha'
-}).sort_values(by='Monto total operado', ascending=False).reset_index()
-
-# Calculate the status based on the most recent operation date
-
-today = datetime.now()
-two_months_ago = today - timedelta(days=60)
-six_months_ago = today - timedelta(days=180)
-
-def classify_client_status(last_date):
-    if pd.isna(last_date):
-        return "Perdido"
-    
-    # Convert string date to datetime for comparison
-    last_date_dt = pd.to_datetime(last_date, errors='coerce')
-    if pd.isna(last_date_dt):
-        return "Perdido"
-    
-    if last_date_dt >= two_months_ago:
-        return "Activo"
-    elif last_date_dt >= six_months_ago:
-        return "Inactivo"
+try:
+    if not clientes_difusion.empty:
+        supabase_client.table('sgto_clientes_difusion').delete().neq('id', 0).execute()
+        insert_table_data('sgto_clientes_difusion', clientes_difusion.to_dict(orient='records'))
+        print("Análisis de clientes para lista de difusión actualizado.")
     else:
-        return "Perdido"
-
-operaciones_por_cliente_historico['Tipo'] = operaciones_por_cliente_historico['Ultima fecha'].apply(classify_client_status)
-
-operaciones_por_cliente_historico = operaciones_por_cliente_historico.fillna({'TC prom': 0})
-
-try: 
-    supabase_client.from_('sgto_operaciones_por_cliente_historico').delete().neq('id', 0).execute()
-    # Replace NaN values with None before converting to dict
-    supabase_client.from_('sgto_operaciones_por_cliente_historico').insert(operaciones_por_cliente_historico.to_dict(orient='records')).execute()
+        print("No se actualiza sgto_clientes_difusion porque el DataFrame está vacío.")
 except Exception as e:
-    print(f"Error updating supabase table: {e}")
-
-
+    print(f"Error updating sgto_clientes_difusion: {e}")
 
 update_log()
 

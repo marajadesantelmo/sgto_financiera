@@ -88,3 +88,15 @@ CREATE TABLE sgto_operaciones_por_cliente_historico (
     "Ultima fecha" DATE,
     "Tipo" TEXT
 );
+
+
+CREATE TABLE hc_clientes_difusion (
+    id SERIAL PRIMARY KEY,
+    "Cliente" TEXT,
+    "Vendedor" TEXT,
+    "Opero mes actual" BOOLEAN,
+    "Ultima operacion" DATE,
+    "Cantidad de operaciones" NUMERIC,
+    "Monto total" NUMERIC,
+    "TC promedio" NUMERIC
+);
